@@ -10,7 +10,8 @@ import {
   downloadEbook,
   deleteBook,
   getAllBooks,
-  ebookUpload
+  ebookUpload,
+  makePublic
 } from "../controllers/BooKController";
 import {authenticateToken} from "../middlewares/authMiddleware";
 
@@ -65,5 +66,8 @@ router.post(
   authenticateToken,
   ebookUpload
 );
+
+
+router.put("/:id/make-public", authenticateToken, makePublic);
 
 export default router;

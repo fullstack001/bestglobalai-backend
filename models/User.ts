@@ -5,7 +5,7 @@ interface IUser extends Document {
   fullName: string;
   email: string;
   password: string;
-  role: "user" | "admin" | "editor";
+  role: "superAdmin" | "user" | "admin" | "editor";
   phoneNumber: string;
   profileImage: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -27,7 +27,7 @@ const userSchema = new Schema<IUser>({
   },
   role: {
     type: String,
-    enum: ["user", "admin", "editor"],
+    enum: ["superAdmin", "user", "admin", "editor"],
     default: "user",
   },
   phoneNumber: { type: String }, 

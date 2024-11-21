@@ -12,6 +12,7 @@ import setupSocket from "./utils/socket";
 import bookRoutes from "./routes/bookRoutes";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
+import { createDefaultAdmin } from "./controllers/userController";
 // import chatRoutes from "./routes/chatRoutes";
 
 dotenv.config();
@@ -53,7 +54,10 @@ if (!process.env.MONGO_URI) {
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
+  .then(async () => {
+    console.log("MongoDB connected");
+    await createDefaultAdmin();
+  })
   .catch((err) => console.log("MongoDB connection error", err));
 
 const PORT = process.env.PORT || 5001;

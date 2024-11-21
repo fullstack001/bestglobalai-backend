@@ -28,7 +28,7 @@ export const updateUserRole = async (req: Request, res: Response) => {
 
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const users = await User.find();
+    const users = await User.find({ role: { $ne: "superAdmin" } });
     res.status(200).json(users);
   } catch (err) {
     res.status(500).json({ message: "Server error", err });
@@ -114,5 +114,53 @@ export const updateProfile = async (req: Request, res: Response) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating profile", error });
+  }
+};
+
+export const createDefaultAdmin = async () => {
+  try {
+    const existingAdmin = await User.findOne({ email: "admin@test.test" });
+    if (!existingAdmin) {
+      const adminUser = new User({
+        fullName: "SuperAdmin",
+        email: "admin@test.test",
+        password: "123.123",
+        role: "superAdmin",
+      });
+      await adminUser.save();
+      console.log("Default admin user created");
+    } else {
+      console.log("SuperAdmin already exist");
+    }
+  } catch (error) {
+    console.error("Error creating default admin user:", error);
+  }
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  const userId = req.user._id; // Assuming `req.user` contains the authenticated user's data
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ message: "Current password is incorrect." });
+    }
+
+    user.password = newPassword; // The `pre("save")` hook in the model will hash this password
+    await user.save();
+
+    res.status(200).json({ message: "Password changed successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to change password.", error });
   }
 };

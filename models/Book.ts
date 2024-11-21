@@ -31,8 +31,9 @@ export interface BookDocument extends Document {
   videoItems: VideoItem[];
   youtubeItems: YoutubeItem[];
   ebookFile?: string; // Optional
-  watermarkFile?:string;
-  bookType?:string;
+  watermarkFile?: string;
+  bookType?: string;
+  private?: boolean;
 }
 
 // Create the Book schema
@@ -66,8 +67,9 @@ const BookSchema: Schema = new mongoose.Schema({
   ],
   ebookFile: { type: String }, // Optional
   watermarkFile: { type: String }, // Optional
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  bookType: {type: String},
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  bookType: { type: String },
+  private: { type: Boolean, default: true },
 });
 
 // Export the model using the BookDocument interface

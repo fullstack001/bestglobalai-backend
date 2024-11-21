@@ -12,6 +12,10 @@ declare global {
   }
 }
 
+interface DecodedToken {
+  _id: string;
+}
+
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const token = req.header("Authorization")?.split(" ")[1];
 
@@ -46,5 +50,26 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     next();
   } catch (error) {
     res.status(400).json({ message: 'Invalid token' });
+  }
+};
+
+
+export const authenticateUser = async (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+
+  if (!token) return res.status(401).json({ message: 'Access denied, no token provided' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({ message: "Authentication failed." });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: "Invalid token." });
   }
 };

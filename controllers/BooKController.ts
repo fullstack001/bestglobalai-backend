@@ -83,7 +83,7 @@ export const createBook = async (req: Request, res: Response) => {
       videoItems: videoItemData,
       youtubeItems: youtubeItems ? JSON.parse(youtubeItems) : [],
       userId,
-      bookType: "created",
+      bookType: "created",      
     });
 
     // Save the newBook document to MongoDB
@@ -322,7 +322,7 @@ export const createBook = async (req: Request, res: Response) => {
         "  }" +
         "  .watermark {" +
         "    position: absolute;" +
-        "    top: 0;" +
+        "    top: -5px;" +
         "    left: 0;" +
         "    right: 0;" +
         "    bottom: 0;" +
@@ -330,9 +330,9 @@ export const createBook = async (req: Request, res: Response) => {
         "    opacity: 0.3;" +
         `    background-image: url('logo.png');` +
         "    background-repeat: no-repeat;" +
-        "    background-position: center;" +
-        "    background-size: auto;" +
-        "    transform: rotate(-30deg);" +
+        // "    background-position: center;" +
+        "    background-size: 200px;" +
+        // "    transform: rotate(-30deg);" +
         "  }" +
         "</style>" +
         "</head>" +
@@ -383,7 +383,7 @@ export const getMyBooks = async (req: Request, res: Response) => {
 
 export const getAllBooks = async (req: Request, res: Response) => {
   try {
-    const books = await Book.find();
+    const books = await Book.find({ private: false });
     res.status(200).json({ books });
   } catch (err) {
     console.error(err);
@@ -935,5 +935,25 @@ export const ebookUpload = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to upload book" });
+  }
+};
+
+
+export const makePublic = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const book = await Book.findById(id);
+
+    if (!book) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    book.private = false; // Change the private property to false (public)
+    await book.save();
+
+    res.status(200).json({ message: "Book is now public", book });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to update book privacy" });
   }
 };
