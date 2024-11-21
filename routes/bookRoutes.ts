@@ -11,7 +11,8 @@ import {
   deleteBook,
   getAllBooks,
   ebookUpload,
-  makePublic
+  makePublic,
+  getPublicBooks
 } from "../controllers/BooKController";
 import {authenticateToken} from "../middlewares/authMiddleware";
 
@@ -69,5 +70,6 @@ router.post(
 
 
 router.put("/:id/make-public", authenticateToken, makePublic);
+router.get("/getPublicBooks", authenticateToken, getPublicBooks);
 
 export default router;

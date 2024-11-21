@@ -383,6 +383,16 @@ export const getMyBooks = async (req: Request, res: Response) => {
 
 export const getAllBooks = async (req: Request, res: Response) => {
   try {
+    const books = await Book.find();
+    res.status(200).json({ books });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch books." });
+  }
+};
+
+export const getPublicBooks = async (req: Request, res: Response) => {
+  try {
     const books = await Book.find({ private: false });
     res.status(200).json({ books });
   } catch (err) {
