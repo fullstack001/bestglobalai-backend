@@ -44,14 +44,12 @@ router.post(
 );
 
 router.get("/", authenticateToken, getAllBooks);
+router.get("/public",authenticateToken, getPublicBooks);
 router.get("/mine", authenticateToken, getMyBooks);
 router.get("/:id/content", getEbookContent);
 router.get("/:id", getBookDetails);
-
 router.get("/:id/download", downloadEbook);
 router.delete("/:id", deleteBook);
-
-
 router.put('/:id', upload.fields([
   { name: 'coverImage', maxCount: 1 },
   { name: 'audioFiles', maxCount: 10 },
@@ -70,6 +68,5 @@ router.post(
 
 
 router.put("/:id/make-public", authenticateToken, makePublic);
-router.get("/getPublicBooks", authenticateToken, getPublicBooks);
 
 export default router;

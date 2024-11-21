@@ -392,6 +392,7 @@ export const getAllBooks = async (req: Request, res: Response) => {
 };
 
 export const getPublicBooks = async (req: Request, res: Response) => {
+  
   try {
     const books = await Book.find({ private: false });
     res.status(200).json({ books });
