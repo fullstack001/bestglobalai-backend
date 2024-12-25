@@ -12,10 +12,9 @@ import {
   getAllBooks,
   ebookUpload,
   makePublic,
-  getPublicBooks
+  getPublicBooks,
 } from "../controllers/BooKController";
-import {authenticateToken} from "../middlewares/authMiddleware";
-
+import { authenticateToken } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
@@ -29,7 +28,10 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage , limits: { fileSize: 1024 * 1024 * 1024 }, });
+const upload = multer({
+  storage,
+  limits: { fieldSize: 1024 * 1024 * 1024, fileSize: 1024 * 1024 * 1024 },
+});
 
 // Route to handle book creation
 router.post(
@@ -44,17 +46,21 @@ router.post(
 );
 
 router.get("/", authenticateToken, getAllBooks);
-router.get("/public",authenticateToken, getPublicBooks);
+router.get("/public", authenticateToken, getPublicBooks);
 router.get("/mine", authenticateToken, getMyBooks);
 router.get("/:id/content", getEbookContent);
 router.get("/:id", getBookDetails);
 router.get("/:id/download", downloadEbook);
 router.delete("/:id", deleteBook);
-router.put('/:id', upload.fields([
-  { name: 'coverImage', maxCount: 1 },
-  { name: 'audioFiles', maxCount: 10 },
-  { name: 'videoFiles', maxCount: 10 },
-]), updateBook);
+router.put(
+  "/:id",
+  upload.fields([
+    { name: "coverImage", maxCount: 1 },
+    { name: "audioFiles", maxCount: 10 },
+    { name: "videoFiles", maxCount: 10 },
+  ]),
+  updateBook
+);
 
 router.post(
   "/ebookUpload",
@@ -65,7 +71,6 @@ router.post(
   authenticateToken,
   ebookUpload
 );
-
 
 router.put("/:id/make-public", authenticateToken, makePublic);
 
