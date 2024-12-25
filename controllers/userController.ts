@@ -123,7 +123,7 @@ export const createDefaultAdmin = async () => {
     if (!existingAdmin) {
       const adminUser = new User({
         fullName: "SuperAdmin",
-        email: "admin@test.test",
+        email: "admin@bestglobalai.com",
         password: "123.123",
         role: "superAdmin",
       });
