@@ -17,10 +17,17 @@ import { createDefaultAdmin } from "./controllers/userController";
 
 dotenv.config();
 
+if (!process.env.MONGO_URI || !process.env.PORT) {
+  throw new Error("Required environment variables are missing.");
+}
+
 const app = express();
 
+
 app.use(cors({ origin: "*" }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: "900mb" }));
+app.use(bodyParser.urlencoded({ limit: "900mb", extended: true }));
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
