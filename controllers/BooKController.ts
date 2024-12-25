@@ -868,7 +868,7 @@ export const deleteBook = async (req: Request, res: Response) => {
 
     const watermarkEbookFilePath = path.join(
       __dirname,
-      `....${book.watermarkFile}`
+      `..${book.watermarkFile}`
     );
 
     if (watermarkEbookFilePath) {
@@ -876,7 +876,7 @@ export const deleteBook = async (req: Request, res: Response) => {
     }
 
     const coverImagePath = book.coverImage
-      ? path.join(__dirname, `../uploads/${book.coverImage}`)
+      ? path.join(__dirname, `../${book.coverImage}`)
       : null;
     if (coverImagePath) deleteFile(coverImagePath);
 
