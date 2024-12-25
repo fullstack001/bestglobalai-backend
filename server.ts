@@ -14,10 +14,6 @@ import { createDefaultAdmin } from "./controllers/userController";
 
 dotenv.config();
 
-if (!process.env.MONGO_URI) {
-  throw new Error("Required environment variables are missing.");
-}
-
 const app = express();
 
 // app.use(cors({ origin: "*" }));
