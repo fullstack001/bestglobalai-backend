@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage , limits: { fileSize: 50 * 1024 * 1024 }, });
+const upload = multer({ storage , limits: { fileSize: 1024 * 1024 * 1024 }, });
 
 // Route to handle book creation
 router.post(
