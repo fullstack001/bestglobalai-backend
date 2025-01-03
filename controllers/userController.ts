@@ -119,7 +119,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 
 export const createDefaultAdmin = async () => {
   try {
-    const existingAdmin = await User.findOne({ email: "admin@test.test" });
+    const existingAdmin = await User.findOne({ email: "admin@bestglobalai.com" });
     if (!existingAdmin) {
       const adminUser = new User({
         fullName: "SuperAdmin",

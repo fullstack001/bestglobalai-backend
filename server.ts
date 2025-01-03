@@ -38,7 +38,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api", (req, res) => {
-  res.send("API running");
+  res.send("APIs running");
 });
 
 if (!process.env.MONGO_URI) {
