@@ -10,6 +10,9 @@ import setupSocket from "./utils/socket";
 import bookRoutes from "./routes/bookRoutes";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
+import paymentRoutes from "./routes/paymentRoutes";
+import translateRoutes from './routes/translateRoutes';
+
 import { createDefaultAdmin } from "./controllers/userController";
 
 dotenv.config();
@@ -31,6 +34,9 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use('/api/translate', translateRoutes);
+
 
 
 app.get("/", (req, res) => {
