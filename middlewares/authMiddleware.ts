@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import User from '../models/User';
+import User from "../models/User";
 
 // Extend the Request interface to include the user property
 declare global {
@@ -16,15 +16,23 @@ interface DecodedToken {
   _id: string;
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const token = req.header("Authorization")?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ message: "Access denied. No token provided." });
+    return res
+      .status(401)
+      .json({ message: "Access denied. No token provided." });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: string;
+    };
     req.userId = decoded.userId; // Now this line will not cause an error
     next();
   } catch (err) {
@@ -32,35 +40,51 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   }
 };
 
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
 
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers['authorization']?.split(' ')[1];
-
-  if (!token) return res.status(401).json({ message: 'Access denied, no token provided' });
+  if (!token)
+    return res
+      .status(401)
+      .json({ message: "Access denied, no token provided" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: string;
+    };
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid token' });
+      return res.status(401).json({ message: "Invalid token" });
     }
 
     req.user = user; // Store user information in request
     next();
   } catch (error) {
-    res.status(400).json({ message: 'Invalid token' });
+    res.status(400).json({ message: "Invalid token" });
   }
 };
 
+export const authenticateUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
 
-export const authenticateUser = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers['authorization']?.split(' ')[1];
-
-  if (!token) return res.status(401).json({ message: 'Access denied, no token provided' });
+  if (!token)
+    return res
+      .status(401)
+      .json({ message: "Access denied, no token provided" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: string;
+    };
     const user = await User.findById(decoded.userId);
 
     if (!user) {
@@ -69,6 +93,39 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
 
     req.user = user;
     next();
+  } catch (error) {
+    res.status(401).json({ message: "Invalid token." });
+  }
+};
+
+export const isAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
+
+  if (!token)
+    return res
+      .status(401)
+      .json({ message: "Access denied, no token provided" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: string;
+    };
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({ message: "Authentication failed." });
+    }
+
+    if (user && user.role === "admin") {
+      req.user = user;
+      next();
+    } else {
+      res.status(403).json({ message: "Access denied" });
+    }
   } catch (error) {
     res.status(401).json({ message: "Invalid token." });
   }

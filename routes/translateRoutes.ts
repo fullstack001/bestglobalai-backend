@@ -1,8 +1,8 @@
 import express from "express";
 
-import {translateProcess} from "../controllers/translateController";
+import {translateBookProcess} from "../controllers/translateController";
 
 const router = express.Router();
-router.post('/', translateProcess);
+router.post('/eBook', translateBookProcess);
 
 export default router;

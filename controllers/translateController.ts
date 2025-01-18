@@ -33,7 +33,7 @@ const translateHtmlContent = async (html: string, targetLanguage: string) => {
   return document.body.innerHTML;
 };
 
-export const translateProcess = async (req: Request, res: Response) => {
+export const translateBookProcess = async (req: Request, res: Response) => {
   const { text, targetLanguage } = req.body;
 
   try {

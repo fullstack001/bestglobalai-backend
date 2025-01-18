@@ -4,7 +4,6 @@ import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import path from "path";
-import setupSocket from "./utils/socket";
 
 
 import bookRoutes from "./routes/bookRoutes";
@@ -12,6 +11,8 @@ import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import translateRoutes from './routes/translateRoutes';
+import emailRoutes from './routes/emailRoutes';
+import blogRoutes from './routes/blogRoutes';
 
 import { createDefaultAdmin } from "./controllers/userController";
 
@@ -36,7 +37,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use('/api/translate', translateRoutes);
-
+app.use('/api/sendEmail', emailRoutes);
+app.use('/api/blogs', blogRoutes);
 
 
 app.get("/", (req, res) => {
