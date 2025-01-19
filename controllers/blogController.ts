@@ -43,9 +43,9 @@ export const createBlog = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllBlogs = async (req: Request, res: Response) => {
+export const getBlogs = async (req: Request, res: Response) => {
   try {
-    const blogs = await Blog.find();
+    const blogs = await Blog.find().sort({ createdAt: -1 });
     res.status(200).json({ blogs });
   } catch (err) {
     console.error(err);
@@ -57,7 +57,9 @@ export const getMyBlogs = async (req: Request, res: Response) => {
   try {
     const userId = req.user._id;
     // const books = await Book.find();
-    const blogs = await Blog.find({ userId }).populate("userId");
+    const blogs = await Blog.find({ userId })
+      .populate("userId")
+      .sort({ createdAt: -1 });
     res.status(200).json({ blogs });
   } catch (err) {
     console.error(err);
@@ -146,3 +148,55 @@ export const getBlogDetail = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to retrieve blog content." });
   }
 };
+
+export const getLatestBlogs = async (req: Request, res: Response) => {
+  const limit =
+    typeof req.query.limit === "string" ? parseInt(req.query.limit) : 3;
+  try {
+    const blogs = await Blog.find().sort({ createdAt: -1 }).limit(limit);
+    res.status(200).json({ blogs });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch blogs." });
+  }
+};
+
+export const getAllBlogs = async (req: Request, res: Response) => {
+  try {
+    const blogs = await Blog.find().sort({ createdAt: -1 });
+    res.status(200).json({ blogs });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch blogs." });
+  }
+};
+
+
+export const getBlogsPaginated = async (req: Request, res: Response) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+  
+      // Calculate skip and limit for pagination
+      const skip = (Number(page) - 1) * Number(limit);
+  
+      // Fetch blogs with pagination
+      const blogs = await Blog.find()
+        .sort({ createdAt: -1 }) // Order by most recent
+        .skip(skip)
+        .limit(Number(limit));
+  
+      // Count total number of blogs
+      const totalBlogs = await Blog.countDocuments();
+  
+      res.status(200).json({
+        blogs,
+        totalBlogs,
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalBlogs / Number(limit)),
+      });
+    } catch (error) {
+      console.error("Error fetching paginated blogs:", error);
+      res.status(500).json({ message: "Failed to fetch blogs." });
+    }
+  };
+

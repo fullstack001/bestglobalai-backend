@@ -4,12 +4,15 @@ import multer from "multer";
 import path from "path";
 
 import {
-  getAllBlogs,
+  getBlogs,
   getMyBlogs,
   createBlog,
   updateBlog,
   deleteBlog,
-  getBlogDetail
+  getBlogDetail,
+  getLatestBlogs,
+  getAllBlogs,
+  getBlogsPaginated
 } from "../controllers/blogController";
 
 import { authenticateToken, isAdmin } from "../middlewares/authMiddleware";
@@ -35,15 +38,19 @@ router.post(
   createBlog
 );
 
-router.get("/", isAdmin, getAllBlogs);
+router.get("/", isAdmin, getBlogs);
+router.get("/all", getAllBlogs);
+router.get("/latest", getLatestBlogs);
 router.get("/mine", isAdmin, getMyBlogs);
+router.get("/paginated", getBlogsPaginated);
 router.put(
   "/:id",
   isAdmin,
   upload.fields([{ name: "featuredImage", maxCount: 1 }]),
   updateBlog
 );
-router.get('/:id', getBlogDetail);
+router.get("/:id", getBlogDetail);
 router.delete("/:id", deleteBlog);
+
 
 export default router;
