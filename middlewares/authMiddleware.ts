@@ -120,7 +120,7 @@ export const isAdmin = async (
       return res.status(401).json({ message: "Authentication failed." });
     }
 
-    if (user && user.role === "admin") {
+    if (user && user.role === "admin" || user && user.role === "superAdmin") {
       req.user = user;
       next();
     } else {
