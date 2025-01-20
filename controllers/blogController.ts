@@ -77,7 +77,7 @@ export const updateBlog = async (req: Request, res: Response) => {
     }
 
     blog.title = title || blog.title;
-    blog.content = title || blog.content;
+    blog.content = content || blog.content;
 
     // Handle cover image replacement
     if (req.files && (req.files as any)["featuredImage"]) {

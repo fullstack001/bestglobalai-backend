@@ -44,8 +44,7 @@ router.get("/latest", getLatestBlogs);
 router.get("/mine", isAdmin, getMyBlogs);
 router.get("/paginated", getBlogsPaginated);
 router.put(
-  "/:id",
-  isAdmin,
+  "/:id",  
   upload.fields([{ name: "featuredImage", maxCount: 1 }]),
   updateBlog
 );
