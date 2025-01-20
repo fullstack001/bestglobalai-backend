@@ -92,7 +92,6 @@ export const updateBlog = async (req: Request, res: Response) => {
         : null;
 
       if (featuredImage) {
-        // Delete the old cover image if a new one is provided
         if (blog.featuredImage) {
           const oldFeaturedImage = path.join(
             __dirname,
@@ -176,16 +175,13 @@ export const getBlogsPaginated = async (req: Request, res: Response) => {
     try {
       const { page = 1, limit = 10 } = req.query;
   
-      // Calculate skip and limit for pagination
       const skip = (Number(page) - 1) * Number(limit);
   
-      // Fetch blogs with pagination
       const blogs = await Blog.find()
-        .sort({ createdAt: -1 }) // Order by most recent
+        .sort({ createdAt: -1 }) 
         .skip(skip)
         .limit(Number(limit));
   
-      // Count total number of blogs
       const totalBlogs = await Blog.countDocuments();
   
       res.status(200).json({

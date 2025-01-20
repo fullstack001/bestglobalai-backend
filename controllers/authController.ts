@@ -80,7 +80,6 @@ const login = async (req: Request, res: Response) => {
   }
 };
 
-// Get logged-in user info
 export const getCurrentUser = async (req: Request, res: Response) => {
   try {
     const userId = req.userId; // Assuming `userId` is set in middleware
