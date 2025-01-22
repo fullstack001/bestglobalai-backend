@@ -36,8 +36,8 @@ export const createContact = async (req: Request, res: Response) => {
     const data = {
       from: `Best Global AI Team <noreply@${process.env.MAILGUN_DOMAIN}>`,
       to: email,
-      subject: "Contact Information Saved.",
-      text: `Thank you for contact us:\n\n${content}\n\nBest Regards,\nBest Global AI Team`,
+      subject: "Contact Information",
+      text: `Thank you for contacting us:\n\n${content}\n\nBest Regards,\nBest Global AI Team`,
     };
 
     const response = await mg.messages.create(

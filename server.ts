@@ -11,7 +11,7 @@ import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import translateRoutes from './routes/translateRoutes';
-import emailRoutes from './routes/emailRoutes';
+import serviceRoutes from './routes/serviceRoutes';
 import blogRoutes from './routes/blogRoutes';
 import contactRoutes from './routes/contactRoutes';
 
@@ -38,7 +38,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use('/api/translate', translateRoutes);
-app.use('/api/sendEmail', emailRoutes);
+app.use('/api/service', serviceRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/contacts', contactRoutes);
 
