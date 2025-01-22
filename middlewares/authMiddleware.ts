@@ -130,3 +130,36 @@ export const isAdmin = async (
     res.status(401).json({ message: "Invalid token." });
   }
 };
+
+export const isSuperAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
+
+  if (!token)
+    return res
+      .status(401)
+      .json({ message: "Access denied, no token provided" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: string;
+    };
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({ message: "Authentication failed." });
+    }
+
+    if (user && user.role === "superAdmin") {
+      req.user = user;
+      next();
+    } else {
+      res.status(403).json({ message: "Access denied" });
+    }
+  } catch (error) {
+    res.status(401).json({ message: "Invalid token." });
+  }
+};

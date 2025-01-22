@@ -13,6 +13,7 @@ import paymentRoutes from "./routes/paymentRoutes";
 import translateRoutes from './routes/translateRoutes';
 import emailRoutes from './routes/emailRoutes';
 import blogRoutes from './routes/blogRoutes';
+import contactRoutes from './routes/contactRoutes';
 
 import { createDefaultAdmin } from "./controllers/userController";
 
@@ -39,6 +40,7 @@ app.use("/api/payment", paymentRoutes);
 app.use('/api/translate', translateRoutes);
 app.use('/api/sendEmail', emailRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/contacts', contactRoutes);
 
 
 app.get("/", (req, res) => {
