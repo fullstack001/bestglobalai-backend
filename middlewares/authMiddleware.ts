@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import axios from "axios";
+import dotenv from "dotenv";
 
+dotenv.config();
 // Extend the Request interface to include the user property
 declare global {
   namespace Express {
@@ -120,7 +123,10 @@ export const isAdmin = async (
       return res.status(401).json({ message: "Authentication failed." });
     }
 
-    if (user && user.role === "admin" || user && user.role === "superAdmin") {
+    if (
+      (user && user.role === "admin") ||
+      (user && user.role === "superAdmin")
+    ) {
       req.user = user;
       next();
     } else {
@@ -161,5 +167,40 @@ export const isSuperAdmin = async (
     }
   } catch (error) {
     res.status(401).json({ message: "Invalid token." });
+  }
+};
+
+export const validateCaptcha = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { captchaToken } = req.body;
+
+  if (!captchaToken) {
+    return res.status(400).json({ message: "Captcha token is required." });
+  }
+
+  try {
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+    const response = await axios.post(
+      `https://www.google.com/recaptcha/api/siteverify`,
+      {},
+      {
+        params: {
+          secret: secretKey,
+          response: captchaToken,
+        },
+      }
+    );
+
+    if (!response.data.success) {
+      return res.status(400).json({ message: "Invalid captcha verification." });
+    }
+
+    next();
+  } catch (error) {
+    console.error("Error verifying captcha:", error);
+    res.status(500).json({ message: "Captcha verification failed." });
   }
 };

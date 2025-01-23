@@ -9,13 +9,14 @@ import path from "path";
 import bookRoutes from "./routes/bookRoutes";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
-import paymentRoutes from "./routes/paymentRoutes";
+import subscriptionRoutes from "./routes/subscriptionRoutes";
 import translateRoutes from './routes/translateRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import blogRoutes from './routes/blogRoutes';
 import contactRoutes from './routes/contactRoutes';
 
 import { createDefaultAdmin } from "./controllers/userController";
+import "./tasks/scheduleNotifications"; 
 
 dotenv.config();
 
@@ -36,7 +37,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
-app.use("/api/payment", paymentRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 app.use('/api/translate', translateRoutes);
 app.use('/api/service', serviceRoutes);
 app.use('/api/blogs', blogRoutes);

@@ -3,7 +3,7 @@ import express from "express";
 import {
   processPaypalPayment,
   processStripePayment,
-} from "../controllers/paymentController";
+} from "../controllers/subscriptionController";
 
 const router = express.Router();
 
