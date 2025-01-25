@@ -24,6 +24,10 @@ export const createServiceOrder = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Invalid request data" });
   }
 
+  const formattedAPIs = selectedAPIs
+  .map((api: { label: string; link: string }) => `${api.label} (${api.link})`)
+  .join("\n");
+
   const newService = new Service({
     email,
     selectedAPIs
@@ -36,9 +40,7 @@ export const createServiceOrder = async (req: Request, res: Response) => {
     from: `Best Global AI Team <noreply@${process.env.MAILGUN_DOMAIN}>`,
     to: email,
     subject: "Your Selected APIs",
-    text: `Thank you for selecting the following APIs:\n\n${selectedAPIs.join(
-      "\n"
-    )}\n\nBest Regards,\nBest Global AI Team`,
+    text: `Thank you for selecting the following APIs:\n\n${formattedAPIs}\n\nBest Regards,\nBest Global AI Team`,
   };
 
   try {
