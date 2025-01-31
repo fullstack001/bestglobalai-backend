@@ -14,6 +14,7 @@ import translateRoutes from './routes/translateRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import blogRoutes from './routes/blogRoutes';
 import contactRoutes from './routes/contactRoutes';
+import videoRoutes from './routes/videoRoutes';
 
 import { createDefaultAdmin } from "./controllers/userController";
 import "./tasks/scheduleNotifications"; 
@@ -42,7 +43,7 @@ app.use('/api/translate', translateRoutes);
 app.use('/api/service', serviceRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/contacts', contactRoutes);
-
+app.use('/api/video', videoRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server running");

@@ -1,8 +1,8 @@
 import express from "express";
 
-import {translateBookProcess} from "../controllers/translateController";
+import {translateBookProcess, translateVideoScriptProcess} from "../controllers/translateController";
 
 const router = express.Router();
 router.post('/eBook', translateBookProcess);
-
+router.post('/video-script', translateVideoScriptProcess);
 export default router;

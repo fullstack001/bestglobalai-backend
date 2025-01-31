@@ -44,3 +44,16 @@ export const translateBookProcess = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to translate text" });
   }
 };
+
+export const translateVideoScriptProcess = async (req: Request, res: Response) => {
+  const { text, targetLanguage } = req.body;
+
+  const response = await translate(text, { to: targetLanguage }) as {
+    from: { language: { iso: string } };
+    text: string;
+  };
+  res.json({
+    originalLanguage: response.from.language.iso,
+    translatedText: response.text,
+  });
+};
