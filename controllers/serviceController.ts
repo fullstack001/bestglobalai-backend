@@ -45,7 +45,7 @@ export const createServiceOrder = async (req: Request, res: Response) => {
 
   const adminData = {
     from: email,
-    to: 'jimmusgrave.jm@gmail.com',
+    to: process.env.ADMIN_EMAIL,
     subject: "Customer Selected APIs",
     text: `APIs:\n\n${formattedAPIs}\n\n`,  
   };
