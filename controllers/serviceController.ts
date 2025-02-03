@@ -37,15 +37,23 @@ export const createServiceOrder = async (req: Request, res: Response) => {
 
   // Mailgun email data
   const data = {
-    from: `Best Global AI Team <noreply@${process.env.MAILGUN_DOMAIN}>`,
+    from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
     to: email,
     subject: "Your Selected APIs",
     text: `Thank you for selecting the following APIs:\n\n${formattedAPIs}\n\nBest Regards,\nBest Global AI Team`,
   };
 
+  const adminData = {
+    from: email,
+    to: `admin@${process.env.MAILGUN_DOMAIN}`,
+    subject: "Customer Selected APIs",
+    text: `APIs:\n\n${formattedAPIs}\n\n`,
+  }
+
   try {
     // Send email via Mailgun
     const response = await mg.messages.create(process.env.MAILGUN_DOMAIN || "", data);
+    const customerResponse = await mg.messages.create(process.env.MAILGUN_DOMAIN || "", adminData);
     // console.log("Mailgun Response:", response);
     res.status(200).json({ message: "Email sent successfully" });
   } catch (error) {
