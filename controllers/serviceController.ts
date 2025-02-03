@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import Service from "../models/Service";
 import dotenv from "dotenv";
-import Mailgun from "mailgun.js";
+import Mailgun, {MailgunMessageData} from "mailgun.js";
 import formData from "form-data";
 
 // Load environment variables
@@ -45,16 +45,18 @@ export const createServiceOrder = async (req: Request, res: Response) => {
 
   const adminData = {
     from: email,
-    to: `admin@bestglobalai.com`,
+    to: 'jimmusgrave.jm@gmail.com',
     subject: "Customer Selected APIs",
-    text: `APIs:\n\n${formattedAPIs}\n\n`,
-  }
+    text: `APIs:\n\n${formattedAPIs}\n\n`,  
+  };
+
 
   try {
     // Send email via Mailgun
-    const response = await mg.messages.create(process.env.MAILGUN_DOMAIN || "", data);
     const customerResponse = await mg.messages.create(process.env.MAILGUN_DOMAIN || "", adminData);
-    // console.log("Mailgun Response:", response);
+    const response = await mg.messages.create(process.env.MAILGUN_DOMAIN || "", data);
+   
+    // console.log("Mailgun Response:", customerResponse);
     res.status(200).json({ message: "Email sent successfully" });
   } catch (error) {
     console.error("Error sending email:", error);
