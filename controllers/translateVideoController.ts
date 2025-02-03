@@ -83,6 +83,16 @@ export const translateVideo = async (req: Request, res: Response) => {
   }
 };
 
+export const getTranslatedVideo = async (req: Request, res: Response) => {
+  try {
+    const translates = await Translate.find({ user: req.user.id });
+    res.json({ translates });
+  } catch (error) {
+    console.error("Error fetching user videos:", error);
+    res.status(500).json({ error: "Error fetching user videos" });
+  }
+};
+
 // Serve translated files
 export const serveTranslatedFile = (req: Request, res: Response) => {
   const filename = req.params.filename;
