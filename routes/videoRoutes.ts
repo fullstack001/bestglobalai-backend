@@ -1,12 +1,27 @@
 import express from "express";
-import { createVideo, getVideos } from "../controllers/videoController";
+import {
+  createVideo,
+  getVideos,
+  deleteVideo,
+} from "../controllers/videoController";
 import { authenticateToken } from "../middlewares/authMiddleware";
 import { translateVideo } from "../controllers/translateVideoController";
+import {
+  upload,
+  serveTranslatedFile,
+} from "../controllers/translateVideoController";
 
 const router = express.Router();
 
 router.post("/create-video", authenticateToken, createVideo);
 router.get("/get-videos", authenticateToken, getVideos);
-router.post("/translate-video", authenticateToken, translateVideo);
+router.post(
+  "/translate-video",
+  authenticateToken,
+  upload.single("file"),
+  translateVideo
+);
+router.get("/translate-video/file/:filename", serveTranslatedFile);
+router.delete("/delete-video/:videoId", deleteVideo);
 
 export default router;
