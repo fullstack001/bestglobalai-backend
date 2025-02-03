@@ -5,6 +5,7 @@ import axios from "axios";
 import multer from "multer";
 import dotenv from "dotenv";
 import Translate from "../models/Translate";
+
 dotenv.config();
 
 // Configure API client
@@ -16,56 +17,68 @@ export const heygenApi = axios.create({
   },
 });
 
-// Ensure the temp directory exists
+// Ensure the temp directory exists asynchronously
 const tempDir = path.resolve("temp");
-if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true });
-}
+fs.promises
+  .mkdir(tempDir, { recursive: true })
+  .catch((err) => console.error("Error creating temp directory:", err));
 
-// Multer configuration for file upload
+// Multer Storage Configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, tempDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueFilename = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueFilename);
+  },
+});
+
+// Multer Middleware for File Upload
 export const upload = multer({
-  storage: multer.memoryStorage(), // Store in memory
+  storage: storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit
 });
 
-// Controller function for translating videos
+// Controller for Video Translation
 export const translateVideo = async (req: Request, res: Response) => {
   const { video_url, output_language } = req.body;
 
   try {
-    let filePath;
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: "Unauthorized access" });
+    }
+
     let translatingData: any = {
       output_language,
       callback_id: "test123",
       translate_audio_only: false,
     };
 
-    // If a file is uploaded, save it to the temp directory
+    // If a file is uploaded, process it
     if (req.file) {
       console.log("File received:", req.file.originalname);
-      const tempFileName = req.file.originalname;
-      filePath = path.join(tempDir, tempFileName);
-      fs.writeFileSync(filePath, req.file.buffer);
-      translatingData.video_url = `${process.env.API_URL}/api/video/translate-video/file/${req.file.originalname}`;
-      translatingData.title = `${tempFileName} - ${output_language}`;
-    }
-
-    // If video_url is provided, use it
-    if (video_url) {
+      translatingData.video_url = `${process.env.API_URL}/api/video/translate-video/file/${req.file.filename}`;
+      translatingData.title = `${req.file.originalname} - ${output_language}`;
+    } else if (video_url) {
       translatingData.video_url = video_url;
+    } else {
+      return res.status(400).json({ error: "No video source provided" });
     }
 
-    // Call the translation API
+    console.log(translatingData);
+
+    // Call HeyGen Translation API
     const response = await heygenApi.post(
       "/v2/video_translate",
       translatingData
     );
 
-    // Store translation info in the database
+    // Store translation record in database
     await Translate.create({
       user: req.user.id,
       video_translate_id: response.data.data.video_translate_id,
-      temp: req.file ? req.file.originalname : undefined,
+      temp: req.file ? req.file.filename : undefined,
     });
 
     res
@@ -83,8 +96,13 @@ export const translateVideo = async (req: Request, res: Response) => {
   }
 };
 
+// Get Translated Videos for a User
 export const getTranslatedVideo = async (req: Request, res: Response) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: "Unauthorized access" });
+    }
+
     const translates = await Translate.find({ user: req.user.id });
     res.json({ translates });
   } catch (error) {
@@ -93,14 +111,15 @@ export const getTranslatedVideo = async (req: Request, res: Response) => {
   }
 };
 
-// Serve translated files
+// Serve Translated Files
 export const serveTranslatedFile = (req: Request, res: Response) => {
   const filename = req.params.filename;
   const filePath = path.join(tempDir, filename);
 
-  if (fs.existsSync(filePath)) {
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).json({ error: "File not found" });
+    }
     res.sendFile(filePath);
-  } else {
-    res.status(404).json({ error: "File not found" });
-  }
+  });
 };
