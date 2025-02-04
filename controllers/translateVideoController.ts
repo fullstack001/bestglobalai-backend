@@ -116,10 +116,9 @@ export const serveTranslatedFile = (req: Request, res: Response) => {
   const filename = req.params.filename;
   const filePath = path.join(tempDir, filename);
   console.log(filePath);
-  fs.access(filePath, fs.constants.F_OK, (err) => {
-    if (err) {
-      return res.status(404).json({ error: "File not found" });
-    }
-    res.sendFile(filePath);
-  });
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  } else {
+    return res.status(404).json({ error: "File not found" });
+  }
 };
