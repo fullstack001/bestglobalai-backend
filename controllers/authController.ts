@@ -1,6 +1,15 @@
 import { Request, Response } from "express";
-import User from "../models/User";
 import jwt from "jsonwebtoken";
+import moment from "moment";
+import mg from "mailgun-js";
+
+import User from "../models/User";
+import { validationCodeContent } from "../config/mailTemplate";
+
+const mailgun = mg({
+  apiKey: process.env.MAILGUN_API_KEY || "",
+  domain: process.env.MAILGUN_DOMAIN || "",
+});
 
 const signup = async (req: Request, res: Response) => {
   const { fullName, email, password, confirm_password } = req.body;
@@ -15,27 +24,25 @@ const signup = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "User already exists." });
     }
 
+    const validationCode = `${Math.floor(100000 + Math.random() * 900000)}`;
+    const validationCodeExpiration = moment().add(10, "minutes").toDate();
+
     const user = new User({
       fullName,
       email,
       password,
+      validationCode,
+      validationCodeExpiration,
     });
 
     await user.save();
 
-    // Create JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
-      expiresIn: "1h",
+    await sendValidationEmail(user.email, user.fullName, validationCode);
+
+    res.status(200).json({
+      msg: "Signup successful. Verification code sent to your email.",
     });
 
-    res.status(201).json({
-      message: "User created successfully.",
-      token,
-      user: {
-        fullName: user.fullName,
-        email: user.email,
-      },
-    });
   } catch (err) {
     res.status(500).json({ message: "Server error", err });
   }
@@ -94,5 +101,105 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+export const verifyCode = async (req: Request, res: Response) => {
+  const { email, validationCode } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if (user.isActive) {
+      return res.status(400).json({ msg: "User is already verified" });
+    }
+
+    if (Number(user.validationCode) !== Number(validationCode)) {
+      return res.status(400).json({ msg: "Invalid code" });
+    }
+
+    if (moment().isAfter(user.validationCodeExpiration)) {
+      return res.status(400).json({ msg: "Verification code has expired" });
+    }
+
+    // Activate the user
+    user.isActive = true;
+    user.validationCode = "";
+    await user.save();
+
+    const newUserData = await User.findOne({ email });
+
+    // Create JWT token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
+      expiresIn: "1h",
+    });
+
+    res.status(201).json({
+      message: "User created successfully.",
+      token,
+      user: {
+        fullName: user.fullName,
+        email: user.email,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+};
+
+export const resendCode = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if (user.isActive) {
+      return res.status(400).json({ msg: "User is already verified" });
+    }
+
+    const validationCode = `${Math.floor(100000 + Math.random() * 900000)}`;
+    const validationCodeExpiration = moment().add(10, "minutes").toDate();
+
+    user.validationCode = validationCode;
+    user.validationCodeExpiration = validationCodeExpiration;
+    await user.save();
+
+    await sendValidationEmail(user.email, user.fullName, validationCode);
+
+    res.status(200).json({ msg: "Verification code resent to your email" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+};
+
+async function sendValidationEmail(
+  email: string,
+  name: string,
+  validationCode: string
+) {
+  const emailData = {
+    from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
+    to: email,
+    subject: "Email Verification Code",
+    html: validationCodeContent(name, validationCode),
+  };
+
+  return new Promise((resolve, reject) => {
+    mailgun.messages().send(emailData, (error, body) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(body);
+      }
+    });
+  });
+}
 
 export { signup, login };

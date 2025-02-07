@@ -8,6 +8,11 @@ interface IUser extends Document {
   role: "superAdmin" | "user" | "admin" | "editor";
   phoneNumber: string;
   profileImage: string;
+  ayrshareRefId: string;
+  ayrshareProfileKey: string;
+  validationCode: string;
+  validationCodeExpiration: Date;
+  isActive: boolean;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -30,9 +35,19 @@ const userSchema = new Schema<IUser>({
     enum: ["superAdmin", "user", "admin", "editor"],
     default: "user",
   },
-  phoneNumber: { type: String }, 
+  validationCode: {
+    type: String,
+    required: false, // Optional until user signs up
+  },
+  validationCodeExpiration: Date,
+  isActive: {
+    type: Boolean,
+    default: false, // By default, new users are inactive until they verify their email
+  },
+  ayrshareRefId: { type: String },
+  ayrshareProfileKey: { type: String },
+  phoneNumber: { type: String },
   profileImage: { type: String },
-
 });
 
 // Hash password before saving
@@ -44,7 +59,9 @@ userSchema.pre("save", async function (next) {
 });
 
 // Compare password
-userSchema.methods.comparePassword = async function (candidatePassword: string) {
+userSchema.methods.comparePassword = async function (
+  candidatePassword: string
+) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

@@ -21,6 +21,8 @@
 .env.local
 .env.development.local
 
+id-3oo9l-private-key.key
+
 .env.test.local
 .env.production.local
 
