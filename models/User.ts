@@ -37,7 +37,6 @@ const userSchema = new Schema<IUser>({
   },
   validationCode: {
     type: String,
-    required: false, // Optional until user signs up
   },
   validationCodeExpiration: Date,
   isActive: {
