@@ -84,3 +84,28 @@ export function validationCodeContent(userName: string, code: string) {
             </body>
             </html>`;
 }
+
+export function subscriptionConfirmationContent(
+  userName: string,
+  plan: string,
+  expirationDate: string
+) {
+  return `<!DOCTYPE html>
+            <html>
+            <head>
+                ${style}
+            </head>
+            <body>
+                <div class="email-container">
+                    <p>Dear ${userName},</p>
+                    <p>Thank you for subscribing to <strong>BestGlobalAI</strong>!</p>
+                    <p>We're excited to have you on board with the <strong>${plan}</strong> plan.</p>
+                    <p>Your subscription is valid until <strong>${expirationDate}</strong>.</p>
+                    <p>If you have any questions or need assistance, don't hesitate to reach out to our support team at:</p>
+                    <p><strong>support@bestglobalai.com</strong></p>
+                    <p>We're here to ensure you get the most out of your experience!</p>
+                    <p>Best regards,<br>The BestGlobalAI Team</p>
+                </div>
+            </body>
+            </html>`;
+}

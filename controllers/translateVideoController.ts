@@ -66,8 +66,6 @@ export const translateVideo = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "No video source provided" });
     }
 
-    console.log(translatingData);
-
     // Call HeyGen Translation API
     const response = await heygenApi.post(
       "/v2/video_translate",

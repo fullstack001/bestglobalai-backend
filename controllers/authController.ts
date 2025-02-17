@@ -42,7 +42,6 @@ const signup = async (req: Request, res: Response) => {
     res.status(200).json({
       msg: "Signup successful. Verification code sent to your email.",
     });
-
   } catch (err) {
     res.status(500).json({ message: "Server error", err });
   }
@@ -131,18 +130,14 @@ export const verifyCode = async (req: Request, res: Response) => {
     const newUserData = await User.findOne({ email });
 
     // Create JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
-      expiresIn: "1h",
-    });
+    // Create JWT token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1h" }
+    );
 
-    res.status(201).json({
-      message: "User created successfully.",
-      token,
-      user: {
-        fullName: user.fullName,
-        email: user.email,
-      },
-    });
+    res.json({ token, user: user });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");

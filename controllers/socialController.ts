@@ -88,3 +88,46 @@ export const socialLinkManage = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const postMedia = async (req: Request, res: Response) => {
+  const { postData } = req.body;
+  console.log(postData);
+  try {
+    const response = await ayrshareApi.post("/api/post", postData, {
+      headers: {
+        "Profile-Key": req.user.ayrshareProfileKey,
+      },
+    });
+    res.status(200).json({ data: response.data });
+  } catch (error: any) {
+    console.log(error.response?.data || error.message);
+    res.status(500).json({
+      error: "Failed to post media",
+      details: error.response?.data || error.message,
+    });
+  }
+};
+
+export const socialAnalytics = async (req: Request, res: Response) => {
+  const { socials } = req.body;
+  try {
+    const response = await ayrshareApi.post(
+      "/api/analytics/social",
+      {
+        platforms: socials,
+      },
+      {
+        headers: {
+          "Profile-Key": req.user.ayrshareProfileKey,
+        },
+      }
+    );
+    res.status(200).json({ data: response.data });
+  } catch (error: any) {
+    console.log(error.response?.data || error.message);
+    res.status(500).json({
+      error: "Failed to social analytics",
+      details: error.response?.data || error.message,
+    });
+  }
+};

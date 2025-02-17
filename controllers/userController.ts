@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
-import User from "../models/User";
 import multer from "multer";
 import path from "path";
+
+import User from "../models/User";
+import Subscription from "../models/Subscription";
 
 // Update user role (Admin only)
 export const updateUserRole = async (req: Request, res: Response) => {
@@ -58,7 +60,16 @@ export const getProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json(user);
+    // Find the user's active subscription
+    const subscription = await Subscription.findOne({ user: userId }).sort({
+      expiryDate: -1,
+    });
+
+    // Merge subscription data into the user object
+    return res.status(200).json({
+      user,
+      subscription,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
