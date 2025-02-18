@@ -5,6 +5,7 @@ import mg from "mailgun-js";
 import crypto from "crypto";
 
 import User from "../models/User";
+import Subscription from "../models/Subscription";
 import {
   validationCodeContent,
   resetPasswordLink,
@@ -84,7 +85,21 @@ const login = async (req: Request, res: Response) => {
       { expiresIn: "1h" }
     );
 
-    res.json({ token, user: user });
+    const userId = user._id;
+
+    const subscription = await Subscription.findOne({ user: userId }).sort({
+      expiryDate: -1,
+    });
+
+    // Only send specific user fields
+    const filteredUser = {
+      _id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+    };
+
+    res.json({ token, user: filteredUser, subscription });
   } catch (err) {
     res.status(500).json({ message: "Server error", err });
   }
@@ -140,8 +155,14 @@ export const verifyCode = async (req: Request, res: Response) => {
       process.env.JWT_SECRET!,
       { expiresIn: "1h" }
     );
+    const filteredUser = {
+      _id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+    };
 
-    res.json({ token, user: user });
+    res.json({ token, user: filteredUser });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
