@@ -113,14 +113,14 @@ export const createBook = async (req: Request, res: Response) => {
       newBook.pages
         .map(
           (_, index: number) =>
-            `<item id="page${index}" href="page${index}.xhtml" media-type="application/xhtml+xml"/>`
+            `<item id="chapter${index}" href="chapter${index}.xhtml" media-type="application/xhtml+xml"/>`
         )
         .join("") +
       '    <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>' +
       "  </manifest>" +
       '  <spine toc="toc">' +
       newBook.pages
-        .map((_, index: number) => `<itemref idref="page${index}"/>`)
+        .map((_, index: number) => `<itemref idref="chapter${index}"/>`)
         .join("") +
       "</spine>" +
       "</package>";
@@ -141,12 +141,12 @@ export const createBook = async (req: Request, res: Response) => {
       "  <navMap>" +
       newBook.pages
         .map(
-          (_, index) =>
+          (page: Page, index: number) =>
             `<navPoint id="navpoint-${index + 1}" playOrder="${index + 1}">` +
             `  <navLabel>` +
-            `    <text>Page ${index + 1}</text>` +
+            `    <text>${page.name}</text>` +
             `  </navLabel>` +
-            `  <content src="page${index}.xhtml"/>` +
+            `  <content src="chapter${index}.xhtml"/>` +
             `</navPoint>`
         )
         .join("") +
@@ -154,13 +154,11 @@ export const createBook = async (req: Request, res: Response) => {
       "</ncx>";
     zip.file("OEBPS/toc.ncx", toc);
 
-    newBook.pages.forEach((page: Page, index: number) => {
-      // Fix issues related to <img> tags inside <p> tags
+    newBook.pages.forEach((page: Page, index: number) => {    
       const sanitizedContent = page.content
-        .replace(/<img([^>]+)>/gi, "<img$1 />") // Self-close <img> tags
+        .replace(/<img([^>]+)>/gi, "<img$1 />") 
         .replace(/<p([^>]*)>(.*?)<\/?p>/gi, (_, pAttr, pContent) => {
           if (pContent.includes("<img")) {
-            // If <p> contains <img>, split into separate <p> and <img /> outside
             return (
               `<p${pAttr}>${pContent.replace(/<img[^>]+>/g, "")}</p>` +
               pContent.match(/<img[^>]+>/g).join("")
@@ -168,9 +166,9 @@ export const createBook = async (req: Request, res: Response) => {
           }
           return `<p${pAttr}>${pContent}</p>`;
         })
-        .replace(/<br>/g, "<br />") // Self-close <br> tags
-        .replace(/&nbsp;/g, "\u00A0") // Replace non-breaking spaces
-        .replace(/<div([^>]*)>(.*?)<\/?div>/gi, "<div$1>$2</div>"); // Ensure <div> tags are closed
+        .replace(/<br>/g, "<br />") 
+        .replace(/&nbsp;/g, "\u00A0") 
+        .replace(/<div([^>]*)>(.*?)<\/?div>/gi, "<div$1>$2</div>"); 
 
       const text =
         '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
@@ -183,7 +181,7 @@ export const createBook = async (req: Request, res: Response) => {
         `<section><h1>${page.name}</h1><p>${sanitizedContent}</p></section>` +
         "</body>" +
         "</html>";
-      zip.file(`OEBPS/page${index}.xhtml`, text);
+      zip.file(`OEBPS/chapter${index}.xhtml`, text);
     });
 
     // Generate the EPUB file
@@ -223,14 +221,14 @@ export const createBook = async (req: Request, res: Response) => {
       newBook.pages
         .map(
           (_, index: number) =>
-            `<item id="page${index}" href="page${index}.xhtml" media-type="application/xhtml+xml"/>`
+            `<item id="chapter${index}" href="chapter${index}.xhtml" media-type="application/xhtml+xml"/>`
         )
         .join("") +
       '    <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>' +
       "  </manifest>" +
       '  <spine toc="toc">' +
       newBook.pages
-        .map((_, index: number) => `<itemref idref="page${index}"/>`)
+        .map((_, index: number) => `<itemref idref="chapter${index}"/>`)
         .join("") +
       "</spine>" +
       "</package>";
@@ -251,12 +249,12 @@ export const createBook = async (req: Request, res: Response) => {
       "  <navMap>" +
       newBook.pages
         .map(
-          (_, index) =>
+          (page: Page, index: number) =>
             `<navPoint id="navpoint-${index + 1}" playOrder="${index + 1}">` +
             `  <navLabel>` +
-            `    <text>Page ${index + 1}</text>` +
+            `    <text>${page.name}</text>` +
             `  </navLabel>` +
-            `  <content src="page${index}.xhtml"/>` +
+            `  <content src="chapter${index}.xhtml"/>` +
             `</navPoint>`
         )
         .join("") +
@@ -342,7 +340,7 @@ export const createBook = async (req: Request, res: Response) => {
         "</body>" +
         "</html>";
 
-      new_zip.file(`OEBPS/page${index}.xhtml`, text);
+      new_zip.file(`OEBPS/chapter${index}.xhtml`, text);
     });
 
     // Generate the EPUB file
@@ -582,14 +580,14 @@ export const updateBook = async (req: Request, res: Response) => {
       book.pages
         .map(
           (_: Page, index: number) =>
-            `<item id="page${index}" href="page${index}.xhtml" media-type="application/xhtml+xml"/>`
+            `<item id="chapter${index}" href="chapter${index}.xhtml" media-type="application/xhtml+xml"/>`
         )
         .join("") +
       '    <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>' +
       "  </manifest>" +
       '  <spine toc="toc">' +
       book.pages
-        .map((_: Page, index: number) => `<itemref idref="page${index}"/>`)
+        .map((_: Page, index: number) => `<itemref idref="chapter${index}"/>`)
         .join("") +
       "  </spine>" +
       "</package>";
@@ -610,12 +608,12 @@ export const updateBook = async (req: Request, res: Response) => {
       "  <navMap>" +
       book.pages
         .map(
-          (_, index) =>
+          (page: Page, index: number) =>
             `<navPoint id="navpoint-${index + 1}" playOrder="${index + 1}">` +
             `  <navLabel>` +
-            `    <text>Page ${index + 1}</text>` +
+            `     <text>${page.name}</text>` +
             `  </navLabel>` +
-            `  <content src="page${index}.xhtml"/>` +
+            `  <content src="chapter${index}.xhtml"/>` +
             `</navPoint>`
         )
         .join("") +
@@ -653,7 +651,7 @@ export const updateBook = async (req: Request, res: Response) => {
         `<section><h1>${page.name}</h1><p>${sanitizedContent}</p></section>` +
         "</body>" +
         "</html>";
-      zip.file(`OEBPS/page${index}.xhtml`, text);
+      zip.file(`OEBPS/chapter${index}.xhtml`, text);
     });
     // Generate the EPUB file
     const ebookBuffer = await zip.generateAsync({ type: "nodebuffer" });
@@ -690,14 +688,14 @@ export const updateBook = async (req: Request, res: Response) => {
       book.pages
         .map(
           (_, index: number) =>
-            `<item id="page${index}" href="page${index}.xhtml" media-type="application/xhtml+xml"/>`
+            `<item id="chapter${index}" href="chapter${index}.xhtml" media-type="application/xhtml+xml"/>`
         )
         .join("") +
       '    <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>' +
       "  </manifest>" +
       '  <spine toc="toc">' +
       book.pages
-        .map((_, index: number) => `<itemref idref="page${index}"/>`)
+        .map((_, index: number) => `<itemref idref="chapter${index}"/>`)
         .join("") +
       "</spine>" +
       "</package>";
@@ -718,12 +716,12 @@ export const updateBook = async (req: Request, res: Response) => {
       "  <navMap>" +
       book.pages
         .map(
-          (_, index) =>
+          (page: Page, index: number) =>
             `<navPoint id="navpoint-${index + 1}" playOrder="${index + 1}">` +
             `  <navLabel>` +
-            `    <text>Page ${index + 1}</text>` +
+            `      <text>${page.name}</text>` +
             `  </navLabel>` +
-            `  <content src="page${index}.xhtml"/>` +
+            `  <content src="chapter${index}.xhtml"/>` +
             `</navPoint>`
         )
         .join("") +
@@ -809,7 +807,7 @@ export const updateBook = async (req: Request, res: Response) => {
         "</body>" +
         "</html>";
 
-      new_zip.file(`OEBPS/page${index}.xhtml`, text);
+      new_zip.file(`OEBPS/chapter${index}.xhtml`, text);
     });
 
     // Generate the EPUB file
