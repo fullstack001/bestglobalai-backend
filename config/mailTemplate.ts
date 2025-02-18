@@ -65,6 +65,9 @@ export function validationCodeContent(userName: string, code: string) {
             </head>
             <body>
                 <div class="email-container">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://bestglobalai.com/watermark.png" alt="BestGlobalAl watermark" style="max-width: 200px; height: auto;"/>
+                    </div>
                     <p>Dear ${userName},</p>
                     <p>Welcome to <strong>BestGlobalAl</strong>! We're thrilled to have you on board.</p>
                     <p>To complete your setup, please verify your email using the code below:</p>
@@ -97,6 +100,9 @@ export function subscriptionConfirmationContent(
             </head>
             <body>
                 <div class="email-container">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://bestglobalai.com/watermark.png" alt="BestGlobalAl watermark" style="max-width: 200px; height: auto;"/>
+                    </div>
                     <p>Dear ${userName},</p>
                     <p>Thank you for subscribing to <strong>BestGlobalAI</strong>!</p>
                     <p>We're excited to have you on board with the <strong>${plan}</strong> plan.</p>
@@ -111,7 +117,7 @@ export function subscriptionConfirmationContent(
 }
 
 export function resetPasswordLink(userName: string, token: string) {
-  const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  const resetLink = `https://bestglobalai.com/reset-password?token=${token}`;
   return `<!DOCTYPE html>
             <html>
             <head>
@@ -119,6 +125,9 @@ export function resetPasswordLink(userName: string, token: string) {
             </head>
             <body>
                 <div class="email-container">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://bestglobalai.com/watermark.png" alt="BestGlobalAl watermark" style="max-width: 200px; height: auto;"/>
+                    </div>
                     <p>Dear ${userName},</p>
                     <p>We received a request to reset your  account password. If you made this request, please click the link below to reset your password:</p>
                     <a href="${resetLink}" class="button">Reset Password</a>
