@@ -109,3 +109,31 @@ export function subscriptionConfirmationContent(
             </body>
             </html>`;
 }
+
+export function resetPasswordLink(userName: string, token: string) {
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  return `<!DOCTYPE html>
+            <html>
+            <head>
+                ${style}
+            </head>
+            <body>
+                <div class="email-container">
+                    <p>Dear ${userName},</p>
+                    <p>We received a request to reset your  account password. If you made this request, please click the link below to reset your password:</p>
+                    <a href="${resetLink}" class="button">Reset Password</a>
+                    <p>For your security, this link will expire in 24 hours. If you didn’t request a password reset, you can safely ignore this email—your account will remain secure.</p>
+                    <ul>
+                     <li>AI-powered interactive avatars</li>
+                     <li>Automated social media and email campaigns</li>
+                     <li>Advanced analytics and insights</li>
+                    </ul>
+                    <p>If you have any questions, reach us at:</p>
+                    <p><strong>support@bestglobalal.com</strong></p>
+                    <p>We're excited to help you get started!</p>
+                    <p>Best regards,<br>
+                    The BestGlobalAl Team</p>
+                </div>
+            </body>
+            </html>`;
+}

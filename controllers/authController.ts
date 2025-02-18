@@ -2,9 +2,13 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import moment from "moment";
 import mg from "mailgun-js";
+import crypto from "crypto";
 
 import User from "../models/User";
-import { validationCodeContent } from "../config/mailTemplate";
+import {
+  validationCodeContent,
+  resetPasswordLink,
+} from "../config/mailTemplate";
 
 const mailgun = mg({
   apiKey: process.env.MAILGUN_API_KEY || "",
@@ -196,5 +200,68 @@ async function sendValidationEmail(
     });
   });
 }
+
+export const requestResetPassword = async (req: Request, res: Response) => {
+  const { email } = req.body;
+  try {
+    let user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ msg: "No user found with this email" });
+    }
+
+    // Generate a reset token that expires in 1 hour
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpire = moment().add(10, "minutes").toDate();
+
+    // Store the token and expiration in the user's record
+    user.resetToken = resetToken;
+    user.resetTokenExpiration = resetTokenExpire;
+    await user.save();
+
+    // Create reset URL
+    const htmlContent = resetPasswordLink(user.fullName, resetToken);
+
+    // Mailgun email configuration
+    const data = {
+      from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
+      to: email,
+      subject: "Password Reset Request",
+      html: htmlContent,
+    };
+
+    // Send the email
+    mailgun.messages().send(data, (error, body) => {
+      if (error) {
+        return res.status(500).json({ msg: "Failed to send email" });
+      }
+      res.json({ msg: "Reset link sent to your email" });
+    });
+  } catch (error) {
+    res.status(500).send("Server error");
+  }
+};
+
+export const ResetPassword = async (req: Request, res: Response) => {
+  const { newPassword, resetToken } = req.body;
+
+  try {
+    const user = await User.findOne({ resetToken });
+    if (!user) {
+      return res.status(400).json({ msg: "No user found with this email" });
+    }
+    if (resetToken !== user.resetToken) {
+      return res.status(400).json({ msg: "Invalid token" });
+    }
+    if (moment().isAfter(user.resetTokenExpiration)) {
+      return res.status(400).json({ msg: "Token has expired" });
+    }
+    user.password = newPassword;
+    user.resetToken = "";
+    await user.save();
+    res.json({ msg: "Password reset successful" });
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+};
 
 export { signup, login };

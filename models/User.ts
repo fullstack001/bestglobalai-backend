@@ -12,6 +12,8 @@ interface IUser extends Document {
   ayrshareProfileKey: string;
   validationCode: string;
   validationCodeExpiration: Date;
+  resetToken: string;
+  resetTokenExpiration: Date;
   isActive: boolean;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -35,6 +37,10 @@ const userSchema = new Schema<IUser>({
     enum: ["superAdmin", "user", "admin", "editor"],
     default: "user",
   },
+  resetToken: {
+    type: String,
+  },
+  resetTokenExpiration: Date,
   validationCode: {
     type: String,
   },
