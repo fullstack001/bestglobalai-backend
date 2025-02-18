@@ -157,6 +157,24 @@ export const addSubscription = async (req: Request, res: Response) => {
   }
 };
 
+export const cancelSubscription = async (req: Request, res: Response) => {
+  const { subscriptionId } = req.body;
+  try {
+    // Cancel the subscription
+    const deletedSubscription = await stripe.subscriptions.cancel(
+      subscriptionId
+    );
+    // Return a success response
+    res.status(200).json({
+      message: "Subscription canceled successfully",
+      deletedSubscription,
+    });
+  } catch (error) {
+    console.error("Error adding subscription:", error);
+    res.status(500).json({ error: "Failed to add subscription" });
+  }
+};
+
 export const processStripePayment = async (req: Request, res: Response) => {
   const { plan, price, frequency, email } = req.body;
 
