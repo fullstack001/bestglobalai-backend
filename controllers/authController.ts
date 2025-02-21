@@ -160,6 +160,7 @@ export const verifyCode = async (req: Request, res: Response) => {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      ayrshareRefId: user.ayrshareRefId,
     };
 
     res.json({ token, user: filteredUser });
