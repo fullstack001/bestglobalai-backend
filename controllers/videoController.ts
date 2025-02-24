@@ -15,6 +15,16 @@ const heygenApi = axios.create({
   },
 });
 
+export const generateFileUrl = async (req: Request, res: Response) => {
+  if (req.file) {
+    console.log(req.file);
+    const fileUrl = `${process.env.API_URL}/api/video/translate-video/file/${req.file.filename}`;
+    res.json({ url: fileUrl });
+  } else {
+    res.status(500).json({ error: "Error generate fileUrl" });
+  }
+};
+
 export const createVideo = async (req: Request, res: Response) => {
   console.log(req.body);
   const { character, voice, background, name } = req.body;
@@ -76,11 +86,15 @@ export const deleteVideo = async (req: Request, res: Response) => {
 
     // First, delete the video from the external API
     try {
-      const deleteResponse = await heygenApi.delete(`/v1/video.delete?video_id=${video_id}`);
+      const deleteResponse = await heygenApi.delete(
+        `/v1/video.delete?video_id=${video_id}`
+      );
       console.log("External API Delete Response:", deleteResponse.data);
     } catch (apiError) {
       console.error("Error deleting video from Heygen API:", apiError);
-      return res.status(500).json({ error: "Failed to delete video from external service" });
+      return res
+        .status(500)
+        .json({ error: "Failed to delete video from external service" });
     }
 
     // Then, delete the video from the database

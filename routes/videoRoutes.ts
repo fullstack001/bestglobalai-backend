@@ -3,6 +3,7 @@ import {
   createVideo,
   getVideos,
   deleteVideo,
+  generateFileUrl,
 } from "../controllers/videoController";
 import { authenticateToken } from "../middlewares/authMiddleware";
 import {
@@ -25,6 +26,7 @@ router.post(
   upload.single("file"),
   translateVideo
 );
+router.post("/background-upload", upload.single("file"), generateFileUrl);
 router.get("/translate-video/file/:filename", serveTranslatedFile);
 router.delete("/delete-video/:videoId", deleteVideo);
 
