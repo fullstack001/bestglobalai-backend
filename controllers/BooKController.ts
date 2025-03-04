@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Book from "../models/Book";
 import User from "../models/User";
+import Follower from "../models/Follower";
 import JSZip from "jszip";
 import fs from "fs";
 import path from "path";
@@ -392,8 +393,18 @@ export const getAllBooks = async (req: Request, res: Response) => {
 export const getPublicBooks = async (req: Request, res: Response) => {
   
   try {
-    const books = await Book.find({ private: false });
-    res.status(200).json({ books });
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    //check if user is follower
+    const follower = await Follower.findOne({ inviterId: user?._id });
+    if (follower) {      
+      const books = await Book.find({ userId, private: false }).populate("userId");
+      res.status(200).json({ books });
+    } else {
+      const books = await Book.find({ private: false });
+      res.status(200).json({ books });
+    }
+    
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch books." });

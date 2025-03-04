@@ -16,6 +16,7 @@ import contactRoutes from "./routes/contactRoutes";
 import videoRoutes from "./routes/videoRoutes";
 import socialRoutes from "./routes/socialRoutes";
 import mediaUrlRoutes from "./routes/mediaUrlRoutes";
+import followerRoutes from "./routes/followerRoutes";
 
 import { createDefaultAdmin } from "./controllers/userController";
 import "./tasks/scheduleNotifications";
@@ -49,6 +50,7 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/video", videoRoutes);
 app.use("/api/social", socialRoutes);
 app.use("/api/media-url", mediaUrlRoutes);
+app.use("/api/followers", followerRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server running");
