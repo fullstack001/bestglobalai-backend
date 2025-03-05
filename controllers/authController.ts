@@ -5,6 +5,7 @@ import mg from "mailgun-js";
 import crypto from "crypto";
 
 import User from "../models/User";
+import Follower from "../models/Follower";
 import Subscription from "../models/Subscription";
 import {
   validationCodeContent,
@@ -17,7 +18,7 @@ const mailgun = mg({
 });
 
 const signup = async (req: Request, res: Response) => {
-  const { fullName, email, password, confirm_password } = req.body;
+  const { fullName, email, password, confirm_password, referralCode } = req.body;
 
   if (password !== confirm_password) {
     return res.status(400).json({ message: "Passwords do not match." });
@@ -38,9 +39,36 @@ const signup = async (req: Request, res: Response) => {
       password,
       validationCode,
       validationCodeExpiration,
+      referralCode: referralCode
     });
 
     await user.save();
+    
+    if (referralCode) {
+      // Check if follower exists with this email
+      const existingFollower = await Follower.findOne({ email });      
+      if (existingFollower) {
+        // Update existing follower
+        await Follower.findOneAndUpdate(
+          { email },
+          { 
+            status: "Active",
+            inviterId: referralCode 
+          }
+        );
+      } else {
+        // Create new follower
+        const newFollower = new Follower({
+          email,
+          inviterId: referralCode,
+          status: "Active",
+          firstName: fullName.split(' ')[0],
+          lastName: fullName.split(' ')[1] || '',
+          referralCode: referralCode
+        });
+        await newFollower.save();       
+      }
+    }
 
     await sendValidationEmail(user.email, user.fullName, validationCode);
 

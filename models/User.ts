@@ -15,6 +15,7 @@ interface IUser extends Document {
   resetToken: string;
   resetTokenExpiration: Date;
   isActive: boolean;
+  referralCode: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -53,6 +54,7 @@ const userSchema = new Schema<IUser>({
   ayrshareProfileKey: { type: String },
   phoneNumber: { type: String },
   profileImage: { type: String },
+  referralCode: { type: String },
 });
 
 // Hash password before saving

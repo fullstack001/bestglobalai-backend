@@ -149,15 +149,22 @@ export function resetPasswordLink(userName: string, token: string) {
 
 export function extraServiceUserEmail(userName: string, service: any) {
   return `<!DOCTYPE html>
+export function sendInvites(inviteLink: string, first_name: string, last_name: string){
+    return `<!DOCTYPE html>
             <html>
             <head>
                 ${style}
             </head>
+<<<<<<< HEAD
             <body>
+=======
+            <body>  
+>>>>>>> ca6883224ad3beff651e1020277ef57ae648598d
                 <div class="email-container">
                     <div style="text-align: center; margin-bottom: 20px;">
                         <img src="https://bestglobalai.com/watermark.png" alt="BestGlobalAl watermark" style="max-width: 200px; height: auto;"/>
                     </div>
+<<<<<<< HEAD
                     <p>Dear ${userName},</p>
                     <p>Thank you for purchasing <strong>${
                       service.title
@@ -222,4 +229,15 @@ export function extraServicePaymentSuccessAdmin(
                 </div>
             </body>
             </html>`;
+=======
+                    <p>Dear ${first_name} ${last_name},</p>
+                    <p>You're invited to join BestGlobalAl! Click the link below to sign up:</p>
+                    <a href="${inviteLink}" class="button">Sign Up</a>
+                    <p>Best regards,<br>
+                    The BestGlobalAl Team</p>
+                </div>
+            </body>
+            </html>`;   
+
+>>>>>>> ca6883224ad3beff651e1020277ef57ae648598d
 }
