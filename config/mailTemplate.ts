@@ -223,3 +223,25 @@ export function extraServicePaymentSuccessAdmin(
             </body>
             </html>`;
 }
+
+export function sendInvites(inviteLink: string, first_name: string, last_name: string){
+    return `<!DOCTYPE html>
+            <html>
+            <head>
+                ${style}
+            </head>
+            <body>  
+                <div class="email-container">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://bestglobalai.com/watermark.png" alt="BestGlobalAl watermark" style="max-width: 200px; height: auto;"/>
+                    </div>
+                    <p>Dear ${first_name} ${last_name},</p>
+                    <p>You're invited to join BestGlobalAl! Click the link below to sign up:</p>
+                    <a href="${inviteLink}" class="button">Sign Up</a>
+                    <p>Best regards,<br>
+                    The BestGlobalAl Team</p>
+                </div>
+            </body>
+            </html>`;   
+
+}

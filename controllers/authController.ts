@@ -110,7 +110,7 @@ const login = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET!,
-      { expiresIn: "1h" }
+      { expiresIn: "10h" }
     );
 
     const userId = user._id;
@@ -182,7 +182,7 @@ export const verifyCode = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET!,
-      { expiresIn: "1h" }
+      { expiresIn: "10h" }
     );
     const filteredUser = {
       _id: user._id,
