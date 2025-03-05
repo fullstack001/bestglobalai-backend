@@ -146,3 +146,80 @@ export function resetPasswordLink(userName: string, token: string) {
             </body>
             </html>`;
 }
+
+export function extraServiceUserEmail(userName: string, service: any) {
+  return `<!DOCTYPE html>
+            <html>
+            <head>
+                ${style}
+            </head>
+            <body>
+                <div class="email-container">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://bestglobalai.com/watermark.png" alt="BestGlobalAl watermark" style="max-width: 200px; height: auto;"/>
+                    </div>
+                    <p>Dear ${userName},</p>
+                    <p>Thank you for purchasing <strong>${
+                      service.title
+                    }</strong>!</p>
+                    <p>Your payment was successfully processed. Here are the details of your purchase:</p>
+                    <ul>
+                        <li><strong>Service:</strong> ${service.title}</li>
+                        <li><strong>Description:</strong> ${
+                          service.description
+                        }</li>
+                        <li><strong>Price:</strong> ${service.price}</li>
+                    </ul>
+                    <p>Features included:</p>
+                    <ul>
+                        ${service.features
+                          .map((feature: string) => `<li>${feature}</li>`)
+                          .join("")}
+                    </ul>
+                    <p>Our team will reach out to you shortly to begin the service.</p>
+                    <p>If you have any questions, feel free to contact us at:</p>
+                    <p><strong>admin@bestglobalai.com</strong></p>
+                    <p>Best regards,<br>
+                    The BestGlobalAI Team</p>
+                </div>
+            </body>
+            </html>`;
+}
+
+export function extraServicePaymentSuccessAdmin(
+  userName: string,
+  userEmail: string,
+  service: any
+) {
+  return `<!DOCTYPE html>
+            <html>
+            <head>
+                ${style}
+            </head>
+            <body>
+                <div class="email-container">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://bestglobalai.com/watermark.png" alt="BestGlobalAI watermark" style="max-width: 200px; height: auto;"/>
+                    </div>
+                    <p><strong>New Extra Service Purchase Notification</strong></p>
+                    <p>A user has successfully purchased an extra service.</p>
+                    <p><strong>User Details:</strong></p>
+                    <p>Name: ${userName}</p>
+                    <p>Email: ${userEmail}</p>
+                    <p><strong>Service Details:</strong></p>
+                    <p>Title: <strong>${service.title}</strong></p>
+                    <p>Description: ${service.description}</p>
+                    <p>Price: ${service.price}</p>
+                    <p><strong>Features:</strong></p>
+                    <ul>
+                        ${service.features
+                          .map((feature: string) => `<li>${feature}</li>`)
+                          .join("")}
+                    </ul>
+                    <p>Please review the request and proceed with the necessary actions.</p>
+                    <p>Best regards,<br>
+                    The BestGlobalAI System</p>
+                </div>
+            </body>
+            </html>`;
+}
