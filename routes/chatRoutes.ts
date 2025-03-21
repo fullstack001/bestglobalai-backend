@@ -1,16 +1,11 @@
-import { Router } from "express";
-import { getChatHistory } from "../controllers/chatController";
+import express from 'express';
+import { authenticateToken } from '../middlewares/authMiddleware';
+import { getMessages, sendMessage, getPaidUsers } from '../controllers/chatController';
 
-const router = Router();
+const router = express.Router();
 
-router.get("/:room", async (req, res) => {
-    try {
-        const room = req.params.room;
-        const history = await getChatHistory(room);
-        res.status(200).json(history);
-    } catch (err) {
-        res.status(500).json({ error: "Error fetching chat history" });
-    }
-});
+router.get('/messages/:userId', authenticateToken, getMessages);
+router.post('/messages', authenticateToken, sendMessage);
+router.get('/users', authenticateToken, getPaidUsers);
 
 export default router;

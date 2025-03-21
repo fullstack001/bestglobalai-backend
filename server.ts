@@ -4,6 +4,10 @@ import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import path from "path";
+import { Server } from "socket.io";
+import { createServer } from "http";
+import { Server as SocketIOServer } from "socket.io";
+
 
 import bookRoutes from "./routes/bookRoutes";
 import authRoutes from "./routes/authRoutes";
@@ -18,6 +22,7 @@ import socialRoutes from "./routes/socialRoutes";
 import mediaUrlRoutes from "./routes/mediaUrlRoutes";
 import extraRoutes from "./routes/extraRoutes";
 import followerroutes from "./routes/followerRoutes";
+import chatRoutes from './routes/chatRoutes'
 
 import { createDefaultAdmin } from "./controllers/userController";
 import "./tasks/scheduleNotifications";
@@ -25,6 +30,26 @@ import "./tasks/scheduleNotifications";
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: process.env.CORS_ORIGIN || "*", // Allow dynamic origins
+    methods: ["GET", "POST"],
+  },
+});
+// Middleware to ensure user is paid before allowing access to certain routes
+
+io.use((socket, next) => {
+  const token = socket.handshake.query.token;
+  // Validate token and ensure user is paid
+  next();
+});
+
+io.on('connection', (socket) => {
+  socket.on('message', (message) => {
+    io.emit('message', message);
+  });
+});
 
 // app.use(cors({ origin: "*" }));
 app.use(
@@ -53,6 +78,7 @@ app.use("/api/social", socialRoutes);
 app.use("/api/media-url", mediaUrlRoutes);
 app.use("/api/extra", extraRoutes);
 app.use("/api/followers", followerroutes);
+app.use("/api/chat", chatRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server running");
