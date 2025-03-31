@@ -31,6 +31,9 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
+
+server.setTimeout(300000000); 
+
 const io = new SocketIOServer(server, {
   cors: {
     origin: process.env.CORS_ORIGIN || "*", // Allow dynamic origins
@@ -103,6 +106,6 @@ mongoose
 
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
