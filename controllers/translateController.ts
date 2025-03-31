@@ -7,15 +7,24 @@ const translateHtmlContent = async (html: string, targetLanguage: string) => {
   const dom = new JSDOM(html);
   const document = dom.window.document;
 
-
   // Extract text content from the HTML while preserving structure
   const translateNodes = async (node: ChildNode): Promise<void> => {
     if (node.nodeType === 3) {
       // Translate text nodes
       const textContent = node.textContent?.trim();
       if (textContent) {
-        const result = await translate(textContent, { to: targetLanguage });
-        node.textContent = result.text;
+        try {
+          const result = await translate(textContent, { to: targetLanguage, rejectOnPartialFail: false });
+          
+          // Check if the result is not null and contains the 'text' property
+          if (result && result.text) {
+            node.textContent = result.text;
+          } else {
+            console.error(`Failed to translate text: ${textContent}`);
+          }
+        } catch (error) {
+          console.error(`Error translating text: ${textContent}`, error);
+        }
       }
     } else if (node.nodeType === 1) {
       // Recursively process child nodes for element nodes
@@ -48,12 +57,24 @@ export const translateBookProcess = async (req: Request, res: Response) => {
 export const translateVideoScriptProcess = async (req: Request, res: Response) => {
   const { text, targetLanguage } = req.body;
 
-  const response = await translate(text, { to: targetLanguage }) as {
-    from: { language: { iso: string } };
-    text: string;
-  };
-  res.json({
-    originalLanguage: response.from.language.iso,
-    translatedText: response.text,
-  });
+  try {
+    const response = await translate(text, { to: targetLanguage, rejectOnPartialFail: false }) as {
+      from: { language: { iso: string } };
+      text: string;
+    };
+
+    // Check if the response is valid and contains the 'text' property
+    if (response && response.text) {
+      res.json({
+        originalLanguage: response.from.language.iso,
+        translatedText: response.text,
+      });
+    } else {
+      console.error("Failed to translate text:", text);
+      res.status(500).json({ error: "Failed to translate video script" });
+    }
+  } catch (error) {
+    console.error("Translation error:", error);
+    res.status(500).json({ error: "Failed to translate video script" });
+  }
 };
