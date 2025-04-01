@@ -2,31 +2,38 @@ import { Request, Response } from "express";
 import translate from "google-translate-api-x";
 import { JSDOM } from "jsdom";
 
-// Delay utility
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Translate with retry-on-failure logic
+// Rotate through TLDs to reduce getting blocked
+const TLDs = ["com", "com.hk", "co.kr", "co.jp", "com.tr", "com.br", "cn"];
+
 const safeTranslate = async (text: string, targetLang: string): Promise<string> => {
-  try {
-    const result = await translate(text, {
-      to: targetLang,
-      rejectOnPartialFail: false,
-    });
-    return result?.text || text;
-  } catch (err) {
-    console.warn(`Initial translation failed for "${text}". Retrying...`, err);
-    await delay(500); // wait 1s before retrying
+  const maxRetries = 4;
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
     try {
-      const retryResult = await translate(text, { to: targetLang });
-      return retryResult?.text || text;
-    } catch (retryErr) {
-      console.error(`Retry failed for "${text}"`, retryErr);
-      return text; // fallback to original
+      const tld = TLDs[attempt % TLDs.length]; // Rotate TLDs
+      const result = await translate(text, {
+        to: targetLang,
+        rejectOnPartialFail: false,
+        tld,
+      });
+
+      if (result && result.text) return result.text;
+      throw new Error("Translation returned no text");
+    } catch (err: any) {
+      attempt++;
+      const wait = 1000 * attempt + Math.floor(Math.random() * 500); // backoff + jitter
+      console.warn(`Retry #${attempt} for "${text.slice(0, 30)}..." in ${wait}ms:`, err?.message || err);
+      await delay(wait);
     }
   }
+
+  console.error(`Failed to translate "${text.slice(0, 30)}..." after ${maxRetries} attempts.`);
+  return text; // fallback to original
 };
 
-// Translate HTML with throttling between text nodes
 const translateHtmlContent = async (html: string, targetLanguage: string) => {
   const dom = new JSDOM(html);
   const document = dom.window.document;
@@ -35,11 +42,9 @@ const translateHtmlContent = async (html: string, targetLanguage: string) => {
     if (node.nodeType === 3) {
       const textContent = node.textContent?.trim();
       if (textContent) {
-        const translatedText = await safeTranslate(textContent, targetLanguage);
-        node.textContent = translatedText;
-
-        // Add a delay between requests to avoid rate-limiting
-        await delay(600 + Math.random() * 400); // 600–1000ms delay
+        const translated = await safeTranslate(textContent, targetLanguage);
+        node.textContent = translated;
+        await delay(500 + Math.random() * 500); // delay 500–1000ms between calls
       }
     } else if (node.nodeType === 1) {
       for (const child of Array.from(node.childNodes)) {
@@ -57,13 +62,12 @@ const translateHtmlContent = async (html: string, targetLanguage: string) => {
 
 export const translateBookProcess = async (req: Request, res: Response) => {
   const { text, targetLanguage } = req.body;
-
   try {
     const translatedHtml = await translateHtmlContent(text, targetLanguage);
     res.json({ translatedText: translatedHtml });
   } catch (error) {
     console.error("Translation error:", error);
-    res.status(500).json({ error: "Failed to translate text" });
+    res.status(500).json({ error: "Translation failed. Please try again later." });
   }
 };
 
@@ -72,19 +76,16 @@ export const translateVideoScriptProcess = async (req: Request, res: Response) =
 
   try {
     const translatedText = await safeTranslate(text, targetLanguage);
-
-    const detectedLang = await translate(text, {
-      to: targetLanguage,
-    }) as {
+    const detection = await translate(text, { to: targetLanguage }) as {
       from: { language: { iso: string } };
     };
 
     res.json({
-      originalLanguage: detectedLang.from.language.iso,
+      originalLanguage: detection.from.language.iso,
       translatedText,
     });
   } catch (error) {
-    console.error("Translation error:", error);
-    res.status(500).json({ error: "Failed to translate video script" });
+    console.error("Script translation error:", error);
+    res.status(500).json({ error: "Script translation failed." });
   }
 };
