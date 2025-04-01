@@ -28,7 +28,7 @@ const safeTranslate = async (
   text: string,
   targetLang: string
 ): Promise<string> => {
-  console.log(">>>>>>>>>>>", text, "<<<<<<<<<<<<<<<");
+  // console.log(">>>>>>>>>>>", text, "<<<<<<<<<<<<<<<");
   const key = `${text}_${targetLang}`;
   if (cache.has(key)) return cache.get(key)!;
 
