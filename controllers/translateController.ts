@@ -2,39 +2,52 @@ import { Request, Response } from "express";
 import translate from "google-translate-api-x";
 import { JSDOM } from "jsdom";
 
-// Function to sanitize and reconstruct HTML content for translation
+// Delay utility
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Translate with retry-on-failure logic
+const safeTranslate = async (text: string, targetLang: string): Promise<string> => {
+  try {
+    const result = await translate(text, {
+      to: targetLang,
+      rejectOnPartialFail: false,
+    });
+    return result?.text || text;
+  } catch (err) {
+    console.warn(`Initial translation failed for "${text}". Retrying...`, err);
+    await delay(500); // wait 1s before retrying
+    try {
+      const retryResult = await translate(text, { to: targetLang });
+      return retryResult?.text || text;
+    } catch (retryErr) {
+      console.error(`Retry failed for "${text}"`, retryErr);
+      return text; // fallback to original
+    }
+  }
+};
+
+// Translate HTML with throttling between text nodes
 const translateHtmlContent = async (html: string, targetLanguage: string) => {
   const dom = new JSDOM(html);
   const document = dom.window.document;
 
-  // Extract text content from the HTML while preserving structure
   const translateNodes = async (node: ChildNode): Promise<void> => {
     if (node.nodeType === 3) {
-      // Translate text nodes
       const textContent = node.textContent?.trim();
       if (textContent) {
-        try {
-          const result = await translate(textContent, { to: targetLanguage, rejectOnPartialFail: false });
-          
-          // Check if the result is not null and contains the 'text' property
-          if (result && result.text) {
-            node.textContent = result.text;
-          } else {
-            console.error(`Failed to translate text: ${textContent}`);
-          }
-        } catch (error) {
-          console.error(`Error translating text: ${textContent}`, error);
-        }
+        const translatedText = await safeTranslate(textContent, targetLanguage);
+        node.textContent = translatedText;
+
+        // Add a delay between requests to avoid rate-limiting
+        await delay(600 + Math.random() * 400); // 600–1000ms delay
       }
     } else if (node.nodeType === 1) {
-      // Recursively process child nodes for element nodes
       for (const child of Array.from(node.childNodes)) {
         await translateNodes(child);
       }
     }
   };
 
-  // Start translation process from the body of the HTML
   for (const child of Array.from(document.body.childNodes)) {
     await translateNodes(child);
   }
@@ -58,21 +71,18 @@ export const translateVideoScriptProcess = async (req: Request, res: Response) =
   const { text, targetLanguage } = req.body;
 
   try {
-    const response = await translate(text, { to: targetLanguage, rejectOnPartialFail: false }) as {
+    const translatedText = await safeTranslate(text, targetLanguage);
+
+    const detectedLang = await translate(text, {
+      to: targetLanguage,
+    }) as {
       from: { language: { iso: string } };
-      text: string;
     };
 
-    // Check if the response is valid and contains the 'text' property
-    if (response && response.text) {
-      res.json({
-        originalLanguage: response.from.language.iso,
-        translatedText: response.text,
-      });
-    } else {
-      console.error("Failed to translate text:", text);
-      res.status(500).json({ error: "Failed to translate video script" });
-    }
+    res.json({
+      originalLanguage: detectedLang.from.language.iso,
+      translatedText,
+    });
   } catch (error) {
     console.error("Translation error:", error);
     res.status(500).json({ error: "Failed to translate video script" });
