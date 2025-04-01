@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@iamtraction/google-translate": "^2.0.1",
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@types/axios": "^0.14.4",
     "@types/form-data": "^2.5.2",
