@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import Mailgun from "mailgun.js";
 import formData from "form-data";
 import moment from "moment";
+import jwt from "jsonwebtoken";
 
 import Subscription from "../models/Subscription";
 import User from "../models/User";
@@ -102,6 +103,11 @@ export const addSubscription = async (req: Request, res: Response) => {
     const { email, plan, frequency, subscriptionType, subscriptionId } =
       req.body;
     const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    user.role = plan === "Basic" ? "editor" : "admin";
+    await user.save();
     const fullName = user?.fullName || "";
 
     const subscribedDate = new Date();
@@ -112,6 +118,7 @@ export const addSubscription = async (req: Request, res: Response) => {
         ? moment(subscribedDate).add(1, "year").toDate()
         : moment(subscribedDate).add(7, "days").toDate();
     const subscription = await Subscription.findOne({ email });
+
     subscription
       ? await Subscription.findOneAndUpdate(
           { email },
@@ -137,6 +144,21 @@ export const addSubscription = async (req: Request, res: Response) => {
           subscriptionId,
         });
 
+    // Create JWT token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "10h" }
+    );
+    // Only send specific user fields
+    const filteredUser = {
+      _id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      ayrshareRefId: user.ayrshareRefId,
+    };
+
     const content = subscriptionConfirmationContent(
       fullName,
       plan,
@@ -150,7 +172,7 @@ export const addSubscription = async (req: Request, res: Response) => {
       html: content,
     });
 
-    res.status(200).json({ message: "Subscription added successfully" });
+    res.json({ token, user: filteredUser, subscription });
   } catch (error) {
     console.error("Error adding subscription:", error);
     res.status(500).json({ error: "Failed to add subscription" });
@@ -158,12 +180,19 @@ export const addSubscription = async (req: Request, res: Response) => {
 };
 
 export const cancelSubscription = async (req: Request, res: Response) => {
-  const { subscriptionId } = req.body;
+  const { subscriptionId, email } = req.body;
   try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    user.role = "user";
+    await user.save();
     // Cancel the subscription
     const deletedSubscription = await stripe.subscriptions.cancel(
       subscriptionId
     );
+
     // Return a success response
     res.status(200).json({
       message: "Subscription canceled successfully",

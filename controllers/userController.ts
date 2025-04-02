@@ -4,6 +4,7 @@ import path from "path";
 
 import User from "../models/User";
 import Subscription from "../models/Subscription";
+import TeamUser from "../models/TeamUser";
 
 // Update user role (Admin only)
 export const updateUserRole = async (req: Request, res: Response) => {
@@ -176,5 +177,51 @@ export const changePassword = async (req: Request, res: Response) => {
     res.status(200).json({ message: "Password changed successfully!" });
   } catch (error) {
     res.status(500).json({ message: "Failed to change password.", error });
+  }
+};
+
+export const getTeamUsers = async (req: Request, res: Response) => {
+  const { email } = req.body; // Get the email from the request body
+  try {
+    const users = await TeamUser.find({ ownerEmail: email });
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+};
+
+export const addTeamUsers = async (req: Request, res: Response) => {
+  const { ownerEmail, memberName, memberEmail } = req.body; // Get the email from the request body
+  try {
+    const existingUser = await TeamUser.findOne({
+      ownerEmail,
+      memberEmail,
+    });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+    const newTeamUser = new TeamUser({
+      ownerEmail,
+      memberName,
+      memberEmail,
+    });
+    await newTeamUser.save();
+    res.status(200).json(newTeamUser);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+};
+
+export const removeTeamUsers = async (req: Request, res: Response) => {
+  const { id } = req.params; // Get the email from the request body
+  console.log(id);
+  try {
+    const deletedUser = await TeamUser.findByIdAndDelete(id);
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
   }
 };
