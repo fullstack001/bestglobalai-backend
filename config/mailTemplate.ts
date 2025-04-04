@@ -224,8 +224,12 @@ export function extraServicePaymentSuccessAdmin(
             </html>`;
 }
 
-export function sendInvites(inviteLink: string, first_name: string, last_name: string){
-    return `<!DOCTYPE html>
+export function sendInvites(
+  inviteLink: string,
+  first_name: string,
+  last_name: string
+) {
+  return `<!DOCTYPE html>
             <html>
             <head>
                 ${style}
@@ -242,6 +246,5 @@ export function sendInvites(inviteLink: string, first_name: string, last_name: s
                     The BestGlobalAl Team</p>
                 </div>
             </body>
-            </html>`;   
-
+            </html>`;
 }

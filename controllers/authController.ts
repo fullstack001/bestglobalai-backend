@@ -18,7 +18,8 @@ const mailgun = mg({
 });
 
 const signup = async (req: Request, res: Response) => {
-  const { fullName, email, password, confirm_password, referralCode } = req.body;
+  const { fullName, email, password, confirm_password, referralCode } =
+    req.body;
 
   if (password !== confirm_password) {
     return res.status(400).json({ message: "Passwords do not match." });
@@ -39,21 +40,21 @@ const signup = async (req: Request, res: Response) => {
       password,
       validationCode,
       validationCodeExpiration,
-      referralCode: referralCode
+      referralCode: referralCode,
     });
 
     await user.save();
-    
+
     if (referralCode) {
       // Check if follower exists with this email
-      const existingFollower = await Follower.findOne({ email });      
+      const existingFollower = await Follower.findOne({ email });
       if (existingFollower) {
         // Update existing follower
         await Follower.findOneAndUpdate(
           { email },
-          { 
+          {
             status: "Active",
-            inviterId: referralCode 
+            inviterId: referralCode,
           }
         );
       } else {
@@ -62,11 +63,11 @@ const signup = async (req: Request, res: Response) => {
           email,
           inviterId: referralCode,
           status: "Active",
-          firstName: fullName.split(' ')[0],
-          lastName: fullName.split(' ')[1] || '',
-          referralCode: referralCode
+          firstName: fullName.split(" ")[0],
+          lastName: fullName.split(" ")[1] || "",
+          referralCode: referralCode,
         });
-        await newFollower.save();       
+        await newFollower.save();
       }
     }
 
@@ -192,7 +193,11 @@ export const verifyCode = async (req: Request, res: Response) => {
       ayrshareRefId: user.ayrshareRefId,
     };
 
-    res.json({ token, user: filteredUser });
+    const subscription = await Subscription.findOne({ user: user._id }).sort({
+      expiryDate: -1,
+    });
+
+    res.json({ token, user: filteredUser, subscription });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");

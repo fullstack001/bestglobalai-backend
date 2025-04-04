@@ -7,10 +7,12 @@ import Mailgun from "mailgun.js";
 import formData from "form-data";
 import moment from "moment";
 import jwt from "jsonwebtoken";
-
+import fs from "fs";
 import Subscription from "../models/Subscription";
 import User from "../models/User";
 import { subscriptionConfirmationContent } from "../config/mailTemplate";
+import { generateInvoicePDF } from "../config/invoiceGenerator";
+import { subscriptions } from "../config/subscriptionDetail";
 
 dotenv.config();
 
@@ -165,11 +167,27 @@ export const addSubscription = async (req: Request, res: Response) => {
       expiryDate.toDateString()
     );
 
+    // Generate PDF invoice
+    const pdfPath = await generateInvoicePDF(
+      fullName,
+      email,
+      plan,
+      frequency,
+      subscribedDate,
+      expiryDate,
+      subscriptions
+    );
+    const attachment = {
+      data: fs.readFileSync(pdfPath), // you can also use fs.readFileSync(filePath) for Buffer
+      filename: "invoice.pdf", // the name you want the recipient to see
+    };
+
     await mg.messages.create(process.env.MAILGUN_DOMAIN || "", {
       from: `Best Global AI Team <noreply@${process.env.MAILGUN_DOMAIN}>`,
       to: email,
       subject: "Subscription Confirmation",
       html: content,
+      attachment: attachment,
     });
 
     res.json({ token, user: filteredUser, subscription });
@@ -193,7 +211,7 @@ export const cancelSubscription = async (req: Request, res: Response) => {
       subscriptionId
     );
 
-    // Return a success response
+    Subscription.findOneAndDelete({ email, subscriptionId }); // Return a success response
     res.status(200).json({
       message: "Subscription canceled successfully",
       deletedSubscription,
