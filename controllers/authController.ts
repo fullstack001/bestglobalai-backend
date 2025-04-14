@@ -120,6 +120,12 @@ const login = async (req: Request, res: Response) => {
       expiryDate: -1,
     });
 
+    // Check if subscription is expired
+    const validSubscription =
+      subscription && moment().isBefore(subscription.expiryDate)
+        ? subscription
+        : null;
+
     // Only send specific user fields
     const filteredUser = {
       _id: user._id,
@@ -129,7 +135,7 @@ const login = async (req: Request, res: Response) => {
       ayrshareRefId: user.ayrshareRefId,
     };
 
-    res.json({ token, user: filteredUser, subscription });
+    res.json({ token, user: filteredUser, subscription: validSubscription });
   } catch (err) {
     res.status(500).json({ message: "Server error", err });
   }
@@ -197,7 +203,13 @@ export const verifyCode = async (req: Request, res: Response) => {
       expiryDate: -1,
     });
 
-    res.json({ token, user: filteredUser, subscription });
+    // Check if subscription is expired
+    const validSubscription =
+      subscription && moment().isBefore(subscription.expiryDate)
+        ? subscription
+        : null;
+
+    res.json({ token, user: filteredUser, subscription: validSubscription });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
