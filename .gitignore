@@ -15,6 +15,7 @@
 #files
 /uploads
 /temp
+/invoices
 
 # misc
 .env

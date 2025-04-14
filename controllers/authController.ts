@@ -107,13 +107,6 @@ const login = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "10h" }
-    );
-
     const userId = user._id;
 
     const subscription = await Subscription.findOne({ user: userId }).sort({
@@ -124,7 +117,23 @@ const login = async (req: Request, res: Response) => {
     const validSubscription =
       subscription && moment().isBefore(subscription.expiryDate)
         ? subscription
-        : null;
+        : null;   
+
+    if (user.role !== "superAdmin" && !validSubscription) {
+      user.role = "user";
+      await user.save();
+    }
+
+    if (!validSubscription) await subscription?.deleteOne();
+
+    // Create JWT token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "10h" }
+    );
+
+    
 
     // Only send specific user fields
     const filteredUser = {
@@ -184,22 +193,9 @@ export const verifyCode = async (req: Request, res: Response) => {
 
     const newUserData = await User.findOne({ email });
 
-    // Create JWT token
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "10h" }
-    );
-    const filteredUser = {
-      _id: user._id,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-      ayrshareRefId: user.ayrshareRefId,
-    };
+    const userId = user._id;
 
-    const subscription = await Subscription.findOne({ user: user._id }).sort({
+    const subscription = await Subscription.findOne({ user: userId }).sort({
       expiryDate: -1,
     });
 
@@ -208,6 +204,28 @@ export const verifyCode = async (req: Request, res: Response) => {
       subscription && moment().isBefore(subscription.expiryDate)
         ? subscription
         : null;
+
+    if (user.role !== "superAdmin" && !validSubscription) {
+      user.role = "user";
+      await user.save();
+    }
+
+    if (!validSubscription) await subscription?.deleteOne();
+
+    const filteredUser = {
+      _id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      ayrshareRefId: user.ayrshareRefId,
+    };
+
+    // Create JWT token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      { expiresIn: "10h" }
+    );
 
     res.json({ token, user: filteredUser, subscription: validSubscription });
   } catch (err) {
