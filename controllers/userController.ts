@@ -200,8 +200,10 @@ export const addTeamUsers = async (req: Request, res: Response) => {
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
+    const user = await User.findOne({ email: ownerEmail });
     const newTeamUser = new TeamUser({
       ownerEmail,
+      ownerName: user?.fullName,
       memberName,
       memberEmail,
     });
@@ -221,6 +223,41 @@ export const removeTeamUsers = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
     res.status(200).json({ message: "User deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+};
+
+export const getChatTeamUsers = async (req: Request, res: Response) => {
+  const { email } = req.params;
+
+  try {
+    // Step 1: Find teams where user is owner or member
+    const relatedTeams = await TeamUser.find({
+      $or: [{ ownerEmail: email }, { memberEmail: email }],
+    });
+
+    // Step 2: Get all unique ownerEmails
+    const ownerEmails = [
+      ...new Set(relatedTeams.map((team) => team.ownerEmail)),
+    ];
+
+    // Step 3: Get all team users under those owners
+    const allTeamUsers = await TeamUser.find({
+      ownerEmail: { $in: ownerEmails },
+    });
+
+    // Step 4: Remove duplicates by memberEmail
+    const uniqueUsersMap = new Map();
+    allTeamUsers.forEach((user) => {
+      if (!uniqueUsersMap.has(user.memberEmail)) {
+        uniqueUsersMap.set(user.memberEmail, user);
+      }
+    });
+
+    const uniqueUsers = Array.from(uniqueUsersMap.values());
+
+    res.status(200).json(uniqueUsers);
   } catch (err) {
     res.status(500).json({ message: "Server error", err });
   }

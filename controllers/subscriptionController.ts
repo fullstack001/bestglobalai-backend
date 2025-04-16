@@ -121,7 +121,7 @@ export const addSubscription = async (req: Request, res: Response) => {
         : moment(subscribedDate).add(7, "days").toDate();
     const subscription = await Subscription.findOne({ email });
 
-    subscription
+    const newSubscription = subscription
       ? await Subscription.findOneAndUpdate(
           { email },
           {
@@ -190,7 +190,7 @@ export const addSubscription = async (req: Request, res: Response) => {
       attachment: attachment,
     });
 
-    res.json({ token, user: filteredUser, subscription });
+    res.json({ token, user: filteredUser, subscription: newSubscription });
   } catch (error) {
     console.error("Error adding subscription:", error);
     res.status(500).json({ error: "Failed to add subscription" });

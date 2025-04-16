@@ -5,17 +5,18 @@ const TeamUserSchema = new Schema(
     ownerEmail: {
       type: String,
       required: true,
-      trim: true,
+    },
+    ownerName: {
+      type: String,
+      required: true,
     },
     memberName: {
       type: String,
       required: true,
-      trim: true,
     },
     memberEmail: {
       type: String,
       required: true,
-      trim: true,
     },
   },
   {

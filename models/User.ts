@@ -16,6 +16,7 @@ interface IUser extends Document {
   resetTokenExpiration: Date;
   isActive: boolean;
   referralCode: string;
+  createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -55,6 +56,7 @@ const userSchema = new Schema<IUser>({
   phoneNumber: { type: String },
   profileImage: { type: String },
   referralCode: { type: String },
+  createdAt: { type: Date, default: Date.now() },
 });
 
 // Hash password before saving

@@ -46,10 +46,8 @@ const signup = async (req: Request, res: Response) => {
     await user.save();
 
     if (referralCode) {
-      // Check if follower exists with this email
       const existingFollower = await Follower.findOne({ email });
       if (existingFollower) {
-        // Update existing follower
         await Follower.findOneAndUpdate(
           { email },
           {
@@ -58,7 +56,6 @@ const signup = async (req: Request, res: Response) => {
           }
         );
       } else {
-        // Create new follower
         const newFollower = new Follower({
           email,
           inviterId: referralCode,
@@ -92,32 +89,19 @@ const login = async (req: Request, res: Response) => {
 
   try {
     const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(400).json({ message: "User not found." });
-    }
-
-    const isMatch = await user.comparePassword(password);
-
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials." });
-    }
-
     if (!user || !(await user.comparePassword(password))) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
     const userId = user._id;
-
     const subscription = await Subscription.findOne({ user: userId }).sort({
       expiryDate: -1,
     });
 
-    // Check if subscription is expired
     const validSubscription =
       subscription && moment().isBefore(subscription.expiryDate)
         ? subscription
-        : null;   
+        : null;
 
     if (user.role !== "superAdmin" && !validSubscription) {
       user.role = "user";
@@ -126,22 +110,22 @@ const login = async (req: Request, res: Response) => {
 
     if (!validSubscription) await subscription?.deleteOne();
 
-    // Create JWT token
+    const isTrial =
+      !validSubscription && moment().diff(user.createdAt, "days") <= 7;
+
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET!,
       { expiresIn: "10h" }
     );
 
-    
-
-    // Only send specific user fields
     const filteredUser = {
       _id: user._id,
       email: user.email,
       fullName: user.fullName,
       role: user.role,
       ayrshareRefId: user.ayrshareRefId,
+      trial: isTrial,
     };
 
     res.json({ token, user: filteredUser, subscription: validSubscription });
@@ -152,14 +136,25 @@ const login = async (req: Request, res: Response) => {
 
 export const getCurrentUser = async (req: Request, res: Response) => {
   try {
-    const userId = req.userId; // Assuming `userId` is set in middleware
-    const user = await User.findById(userId).select("-password"); // Exclude password
+    const userId = req.userId;
+    const user = await User.findById(userId).select("-password");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    const subscription = await Subscription.findOne({ user: user._id }).sort({
+      expiryDate: -1,
+    });
 
-    return res.status(200).json({ user });
+    const validSubscription =
+      subscription && moment().isBefore(subscription.expiryDate)
+        ? subscription
+        : null;
+
+    const isTrial =
+      !validSubscription && moment().diff(user.createdAt, "days") <= 7;
+
+    return res.status(200).json({ user, subscription, isTrial });
   } catch (error) {
     return res.status(500).json({ message: "Server error" });
   }
@@ -186,20 +181,14 @@ export const verifyCode = async (req: Request, res: Response) => {
       return res.status(400).json({ msg: "Verification code has expired" });
     }
 
-    // Activate the user
     user.isActive = true;
     user.validationCode = "";
     await user.save();
 
-    const newUserData = await User.findOne({ email });
-
-    const userId = user._id;
-
-    const subscription = await Subscription.findOne({ user: userId }).sort({
+    const subscription = await Subscription.findOne({ user: user._id }).sort({
       expiryDate: -1,
     });
 
-    // Check if subscription is expired
     const validSubscription =
       subscription && moment().isBefore(subscription.expiryDate)
         ? subscription
@@ -212,15 +201,18 @@ export const verifyCode = async (req: Request, res: Response) => {
 
     if (!validSubscription) await subscription?.deleteOne();
 
+    const isTrial =
+      !validSubscription && moment().diff(user.createdAt, "days") <= 7;
+
     const filteredUser = {
       _id: user._id,
       email: user.email,
       fullName: user.fullName,
       role: user.role,
       ayrshareRefId: user.ayrshareRefId,
+      trial: isTrial,
     };
 
-    // Create JWT token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET!,
@@ -295,19 +287,15 @@ export const requestResetPassword = async (req: Request, res: Response) => {
       return res.status(400).json({ msg: "No user found with this email" });
     }
 
-    // Generate a reset token that expires in 1 hour
     const resetToken = crypto.randomBytes(32).toString("hex");
     const resetTokenExpire = moment().add(10, "minutes").toDate();
 
-    // Store the token and expiration in the user's record
     user.resetToken = resetToken;
     user.resetTokenExpiration = resetTokenExpire;
     await user.save();
 
-    // Create reset URL
     const htmlContent = resetPasswordLink(user.fullName, resetToken);
 
-    // Mailgun email configuration
     const data = {
       from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
       to: email,
@@ -315,7 +303,6 @@ export const requestResetPassword = async (req: Request, res: Response) => {
       html: htmlContent,
     };
 
-    // Send the email
     mailgun.messages().send(data, (error, body) => {
       if (error) {
         return res.status(500).json({ msg: "Failed to send email" });

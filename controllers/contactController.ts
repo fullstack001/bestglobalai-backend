@@ -77,17 +77,60 @@ export const getContactPaginated = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getContactDetail = async (req: Request, res: Response) => {
-    try {
-      const contactId = req.params.id;
-      const contact = await Contact.findById(contactId);
-      if (!contact) {
-        return res.status(404).json({ message: "Contact not found" });
-      }
-      res.status(200).json({ contact });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Failed to retrieve contact content." });
+  try {
+    const contactId = req.params.id;
+    const contact = await Contact.findById(contactId);
+    if (!contact) {
+      return res.status(404).json({ message: "Contact not found" });
     }
-  };
+    res.status(200).json({ contact });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to retrieve contact content." });
+  }
+};
+
+export const deleteContactDetail = async (req: Request, res: Response) => {
+  try {
+    const contactId = req.params.id;
+    const contact = await Contact.findById(contactId);
+    if (!contact) {
+      return res.status(404).json({ message: "Contact not found" });
+    }
+    await Contact.deleteOne({ _id: contactId });
+    res.status(200).json({ message: "Contact deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete contact." });
+  }
+};
+
+export const replyContact = async (req: Request, res: Response) => {
+  try {
+    const contactId = req.params.id;
+    const { message } = req.body;
+    console.log(contactId, message);
+
+    const contact = await Contact.findById(contactId);
+    if (!contact) {
+      return res.status(404).json({ message: "Contact not found" });
+    }
+
+    const data = {
+      from: `Best Global AI Team <noreply@${process.env.MAILGUN_DOMAIN}>`,
+      to: contact.email,
+      text: message,
+    };
+
+    await mg.messages.create(process.env.MAILGUN_DOMAIN || "", data);
+
+    contact.replied = true;
+    await contact.save();
+
+    res.status(200).json({ message: "Contact replied successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to reply to contact." });
+  }
+};
