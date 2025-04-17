@@ -4,6 +4,8 @@ import path from "path";
 
 import User from "../models/User";
 import Subscription from "../models/Subscription";
+import Video from "../models/Video";
+import Translate from "../models/Translate";
 import TeamUser from "../models/TeamUser";
 
 // Update user role (Admin only)
@@ -31,9 +33,31 @@ export const updateUserRole = async (req: Request, res: Response) => {
 
 export const getUsers = async (req: Request, res: Response) => {
   try {
+    // Get users excluding superAdmins
     const users = await User.find({ role: { $ne: "superAdmin" } });
-    res.status(200).json(users);
+
+    // Map users and attach subscription, video count, translation count
+    const enrichedUsers = await Promise.all(
+      users.map(async (user) => {
+        const subscription = await Subscription.findOne({ user: user._id });
+        const videoCount = await Video.countDocuments({ user: user._id });
+        const translatedCount = await Translate.countDocuments({
+          user: user._id,
+        });
+
+        return {
+          ...user.toObject(),
+          subscription: subscription?.plan || "Free",
+          subscriptionExpiry: subscription?.expiryDate || null,
+          createdVideo: videoCount,
+          translatedVideo: translatedCount,
+        };
+      })
+    );
+
+    res.status(200).json(enrichedUsers);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error", err });
   }
 };
