@@ -34,6 +34,7 @@ const safeTranslate = async (
 
   const maxRetries = 4;
   let attempt = 0;
+  console.log("Attempting to translate:", text, targetLang);
 
   // while (attempt < maxRetries) {
   try {
