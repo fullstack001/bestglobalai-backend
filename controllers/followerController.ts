@@ -98,12 +98,14 @@ export const uploadFollowers = async (req: Request, res: Response) => {
       })
       .on("end", async () => {
         for (const followerData of followers) {
-          const existingFollower = await Follower.findOne({ email: followerData.email });
+          const existingFollower = await Follower.findOne({
+            email: followerData.email,
+          });
           if (existingFollower) {
             // Update existing follower
             await Follower.findOneAndUpdate(
               { email: followerData.email },
-              { 
+              {
                 inviterId: followerData.inviterId,
                 firstName: followerData.firstName,
                 lastName: followerData.lastName,
@@ -116,7 +118,7 @@ export const uploadFollowers = async (req: Request, res: Response) => {
                 phone1: followerData.phone1,
                 phone2: followerData.phone2,
                 status: followerData.status,
-                referralCode: followerData.referralCode
+                referralCode: followerData.referralCode,
               }
             );
           } else {
@@ -139,11 +141,10 @@ export const uploadFollowers = async (req: Request, res: Response) => {
 
 //send invitations to followers by using mailgun
 export const sendInvites = async (req: Request, res: Response) => {
-
   try {
     const followerId = req.params.id;
     const inviterId = req.user._id;
-   
+
     const follower = await Follower.findById(followerId);
     if (!follower) {
       return res.status(403).json({ message: "Follower not found" });
@@ -161,11 +162,11 @@ export const sendInvites = async (req: Request, res: Response) => {
       username: "api",
       key: process.env.MAILGUN_API_KEY || "your-mailgun-api-key",
     });
-  
+
     const inviteLink = `${frontend_url}/signup?ref=${follower.referralCode}`;
     const htmlContent = sendInvitesTemplate(
-      String(inviteLink), 
-      String(follower.firstName), 
+      String(inviteLink),
+      String(follower.firstName),
       String(follower.lastName)
     );
     const emailData = {
@@ -179,7 +180,7 @@ export const sendInvites = async (req: Request, res: Response) => {
       process.env.MAILGUN_DOMAIN || "your-mailgun-domain",
       emailData
     );
- 
+
     res.json({ message: "Invitations sent!" });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
