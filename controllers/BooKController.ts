@@ -968,10 +968,19 @@ export const makePublic = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Book not found" });
     }
 
-    book.private = false; // Change the private property to false (public)
-    await book.save();
+    if(book.private === false) {
+      book.private = true; // Change the private property to true (private)
+      await book.save();
+      res.status(200).json({ message: "private", book });
+    }else{
+      book.private = false; // Change the private property to false (public)
+      await book.save();
+      res.status(200).json({ message: "public", book });
+    }
 
-    res.status(200).json({ message: "Book is now public", book });
+  
+
+   
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to update book privacy" });
