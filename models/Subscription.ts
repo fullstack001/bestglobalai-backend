@@ -18,9 +18,11 @@ const subscriptionSchema = new mongoose.Schema({
     type: String,
     enum: ["stripe", "paypal"],
   },
+  totalPrice: { type: Number, default: 0 },
   subscriptionId: { type: String },
   subscribedDate: { type: Date, required: true, default: Date.now },
   expiryDate: { type: Date, required: true },
+
 });
 
 const Subscription = mongoose.model("Subscription", subscriptionSchema);

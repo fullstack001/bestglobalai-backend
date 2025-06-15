@@ -102,7 +102,7 @@ export const createStripeSubscription = async (req: Request, res: Response) => {
 
 export const addSubscription = async (req: Request, res: Response) => {
   try {
-    const { email, plan, frequency, subscriptionType, subscriptionId } =
+    const { email, plan, frequency, subscriptionType, subscriptionId, totalPrice } =
       req.body;
     const user = await User.findOne({ email });
     if (!user) {
@@ -132,6 +132,7 @@ export const addSubscription = async (req: Request, res: Response) => {
             subscribedDate,
             expiryDate,
             subscriptionType,
+            totalPrice,
             subscriptionId,
           }
         )
@@ -143,6 +144,7 @@ export const addSubscription = async (req: Request, res: Response) => {
           subscribedDate,
           expiryDate,
           subscriptionType,
+          totalPrice,
           subscriptionId,
         });
 

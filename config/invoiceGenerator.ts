@@ -16,10 +16,10 @@ export const generateInvoicePDF = (
     (sub: any) => sub.title === plan
   );
 
-  const price =
-    frequency === "yearly"
-      ? subscriptionDetails.yearlyPrice
-      : subscriptionDetails.monthlyPrice;
+  const price = subscriptionDetails?.totalPrice || 0;
+    // frequency === "yearly"
+    //   ? subscriptionDetails.yearlyPrice
+    //   : subscriptionDetails.monthlyPrice;
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument();
     const fileName = `invoice-${Date.now()}.pdf`;
@@ -50,12 +50,12 @@ export const generateInvoicePDF = (
     doc.text(`Valid until: ${expiryDate.toDateString()}`);
     doc.moveDown();
 
-    doc.text("Included Features:", { underline: true });
-    doc.moveDown();
+    // doc.text("Included Features:", { underline: true });
+    // doc.moveDown();
 
-    subscriptionDetails.features.forEach((feature: string) => {
-      doc.text(`• ${feature}`);
-    });
+    // subscriptionDetails.features.forEach((feature: string) => {
+    //   doc.text(`• ${feature}`);
+    // });
 
     doc.moveDown();
     doc.text("Thank you for choosing BestGlobalAI!", { align: "center" });
