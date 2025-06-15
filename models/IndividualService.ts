@@ -8,7 +8,7 @@ const individualServiceSchema = new mongoose.Schema({
   },
   completeDate: { type: Date },
 });
-const IndividualService =
-  mongoose.models.individualService || // Reuse the existing model if it exists
-  mongoose.model("individualService", individualServiceSchema);
+
+const IndividualService = mongoose.model("individualService", individualServiceSchema);
+
 export default IndividualService;

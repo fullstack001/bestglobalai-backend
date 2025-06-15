@@ -8,7 +8,8 @@ import { extraServicePaymentSuccessAdmin, individualServicePaymentSuccessAdmin }
 import { extraServiceUserEmail, individualServiceUserEmail } from "../config/mailTemplate";
 
 import ExtraService from "../models/extraService";
-import IndividualService from "../models/individualService";
+import IndividualService from "../models/IndividualService";
+
 import User from "../models/User";
 const key = process.env.STRIPE_SECRET_KEY || "";
 const stripeInstance = new stripe(key);
