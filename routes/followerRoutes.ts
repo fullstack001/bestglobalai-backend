@@ -10,6 +10,8 @@ import {
   addFollower,
   deleteFollower,
   getFollower,
+  sendBulkInvites,
+  deleteBulkFollowers
 } from "../controllers/followerController";
 import { authenticateToken } from "../middlewares/authMiddleware";
 
@@ -37,11 +39,14 @@ router.post(
   upload.fields([{ name: "csvFile", maxCount: 1 }]),
   uploadFollowers
 );
+
 router.post("/sendInvites/:id", authenticateToken, sendInvites);
 router.get("/all/:id", authenticateToken, getFollowers);
 router.get("/:id", authenticateToken, getFollower);
 router.post("/", authenticateToken, addFollower);
 router.put("/:id", authenticateToken, updateFollowerStatus);
 router.delete("/:id", authenticateToken, deleteFollower);
+router.post("/sendBulkInvites", authenticateToken, sendBulkInvites);
+router.post("/deleteBulkFollowers", authenticateToken, deleteBulkFollowers);
 
 export default router;

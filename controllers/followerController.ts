@@ -211,7 +211,18 @@ export const getFollowers = async (req: Request, res: Response) => {
   try {
     //followers find by inviterId
     const followers = await Follower.find({ inviterId });
-    res.json({ followers });
+    const emails = followers.map((f) => f.email);
+    const existingUsers = await User.find({ email: { $in: emails } });
+
+     const followersWithStatus = followers.map((follower) => {
+      const isRegistered = existingUsers.some((u) => u.email === follower.email);
+      return {
+        ...follower.toObject(),
+        status: isRegistered ? "Active" : follower.status,
+      };
+    });
+
+    res.json({ followers: followersWithStatus });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
@@ -246,4 +257,56 @@ export const deleteFollower = async (req: Request, res: Response) => {
 export const getFollower = async (req: Request, res: Response) => {
   const follower = await Follower.findById(req.params.id);
   res.json(follower);
+};
+
+
+export const sendBulkInvites = async (req: Request, res: Response) => {
+  const { followerIds } = req.body;
+  const inviterId = req.user._id;
+
+  const inviter = await User.findById(inviterId);
+  if (!inviter || !inviter.isActive) {
+    return res.status(403).json({ message: "Only paid users can send invites." });
+  }
+
+  const mailgun = new Mailgun(formData);
+  const mg = mailgun.client({
+    username: "api",
+    key: process.env.MAILGUN_API_KEY!,
+  });
+
+  const followers = await Follower.find({ _id: { $in: followerIds } });
+  const sentEmails: string[] = [];
+
+  for (const follower of followers) {
+    const inviteLink = `${frontend_url}/signup?ref=${follower.referralCode}`;
+    const htmlContent = sendInvitesTemplate(
+      String(inviteLink),
+      String(follower.firstName),
+      String(follower.lastName)
+    );
+
+    const emailData = {
+      from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
+      to: follower.email,
+      subject: "You're Invited to Join!",
+      html: htmlContent,
+    };
+
+    await mg.messages.create(process.env.MAILGUN_DOMAIN!, emailData);
+    sentEmails.push(follower.email);
+  }
+
+  res.json({ message: `Invitations sent to ${sentEmails.length} followers.` });
+};
+
+
+export const deleteBulkFollowers = async (req: Request, res: Response) => {
+  const { followerIds } = req.body;
+  try {
+    await Follower.deleteMany({ _id: { $in: followerIds } });
+    res.status(200).json({ message: "Selected followers deleted." });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
 };
