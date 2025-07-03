@@ -11,7 +11,8 @@ import {
   deleteFollower,
   getFollower,
   sendBulkInvites,
-  deleteBulkFollowers
+  deleteBulkFollowers,
+  uploadHubspotFollowers
 } from "../controllers/followerController";
 import { authenticateToken } from "../middlewares/authMiddleware";
 
@@ -39,6 +40,14 @@ router.post(
   upload.fields([{ name: "csvFile", maxCount: 1 }]),
   uploadFollowers
 );
+
+router.post(
+  "/uploadHubspotFollowers",
+  authenticateToken,
+  upload.fields([{ name: "csvFile", maxCount: 1 }]),
+  uploadHubspotFollowers
+);
+
 
 router.post("/sendInvites/:id", authenticateToken, sendInvites);
 router.get("/all/:id", authenticateToken, getFollowers);

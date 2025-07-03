@@ -139,6 +139,104 @@ export const uploadFollowers = async (req: Request, res: Response) => {
   }
 };
 
+export const uploadHubspotFollowers = async (req: Request, res: Response) => {
+  const inviterId = req.user._id;
+  try {
+    const user = await User.findById(inviterId);
+    if (!user || !user.isActive) {
+      return res.status(403).json({ message: "Only paid users can upload followers." });
+    }
+
+    if (!req.files || !("csvFile" in req.files) || !req.files["csvFile"][0]) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    const file = (req.files["csvFile"] as MulterFile[])[0];
+    const csvFilePath = path.join(__dirname, "../uploads/followers", file.filename);
+
+    if (!fs.existsSync(csvFilePath)) {
+      return res.status(400).json({ message: "File does not exist." });
+    }
+
+    const requiredHeaders = [
+      "Record ID",
+      "First Name",
+      "Last Name",
+      "Email",
+      "Phone Number",
+      "Lead Status",
+      "Favorite Content Topics",
+      "Preferred channels",
+      "Create Date"
+    ];
+
+    const followers: any[] = [];
+    let headersValidated = false;
+    const stream = fs.createReadStream(csvFilePath);
+
+    stream
+      .pipe(csvParser())
+      .on("headers", (headers) => {
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        if (missingHeaders.length > 0) {
+          headersValidated = false;
+          console.error(`Invalid CSV headers. Missing: ${missingHeaders.join(", ")}`);
+          // Stop further processing by destroying the stream
+          stream.destroy();
+          return res.status(400).json({
+            message: `Invalid CSV headers. Missing: ${missingHeaders.join(", ")}`,
+          });
+        } else {
+          headersValidated = true;
+        }
+      })
+      .on("data", (row) => {
+        if (!headersValidated) return;
+
+        // Only transform valid emails
+        const email = row["Email"]?.trim().toLowerCase();
+        if (!email) return;
+
+        followers.push({
+          inviterId,
+          firstName: row["First Name"] || "",
+          lastName: row["Last Name"] || "",
+          companyName: "", // Not available in HubSpot export
+          address: "",
+          city: "",
+          country: "",
+          state: "",
+          zip: "",
+          phone1: row["Phone Number"] || "",
+          phone2: "", // HubSpot only gives 1 phone
+          email,
+          status: "Pending",
+          referralCode: String(inviterId),
+        });
+      })
+      .on("end", async () => {
+        for (const followerData of followers) {
+          const existingFollower = await Follower.findOne({ email: followerData.email });
+          if (existingFollower) {
+            await Follower.findOneAndUpdate({ email: followerData.email }, followerData);
+          } else {
+            const newFollower = new Follower(followerData);
+            await newFollower.save();
+          }
+        }
+
+        fs.unlinkSync(csvFilePath);
+        res.json({ message: "HubSpot followers uploaded and formatted successfully." });
+      })
+      .on("error", (err) => {
+        console.error("CSV parse error:", err);
+        res.status(500).json({ message: "Error parsing CSV file." });
+      });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
 //send invitations to followers by using mailgun
 export const sendInvites = async (req: Request, res: Response) => {
   try {
