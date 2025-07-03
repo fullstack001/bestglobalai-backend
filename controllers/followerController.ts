@@ -22,7 +22,7 @@ export const generateInvite = async (req: Request, res: Response) => {
   const userId = req.user._id;
   try {
     const user = await User.findById(userId);
-    if (!user || !user.isActive) {
+    if (!user || (!["superAdmin", "admin", "editor"].includes(user.role)) || !user.isActive) {
       return res
         .status(403)
         .json({ message: "Only paid users can generate invites." });
@@ -53,7 +53,7 @@ export const uploadFollowers = async (req: Request, res: Response) => {
   const inviterId = req.user._id;
   try {
     const user = await User.findById(inviterId);
-    if (!user || !user.isActive) {
+    if (!user || (!["superAdmin", "admin", "editor"].includes(user.role)) || !user.isActive) {
       return res
         .status(403)
         .json({ message: "Only paid users can upload followers." });
@@ -143,7 +143,7 @@ export const uploadHubspotFollowers = async (req: Request, res: Response) => {
   const inviterId = req.user._id;
   try {
     const user = await User.findById(inviterId);
-    if (!user || !user.isActive) {
+    if (!user || (!["superAdmin", "admin", "editor"].includes(user.role)) || !user.isActive) {   
       return res.status(403).json({ message: "Only paid users can upload followers." });
     }
 
@@ -249,7 +249,7 @@ export const sendInvites = async (req: Request, res: Response) => {
     }
 
     const inviter = await User.findById(inviterId);
-    if (!inviter || !inviter.isActive) {
+    if (!inviter || (!["superAdmin", "admin", "editor"].includes(inviter.role)) || !inviter.isActive) {
       return res
         .status(403)
         .json({ message: "Only paid users can send invites." });
@@ -363,7 +363,7 @@ export const sendBulkInvites = async (req: Request, res: Response) => {
   const inviterId = req.user._id;
 
   const inviter = await User.findById(inviterId);
-  if (!inviter || !inviter.isActive) {
+  if (!inviter || (!["superAdmin", "admin", "editor"].includes(inviter.role)) || !inviter.isActive) {
     return res.status(403).json({ message: "Only paid users can send invites." });
   }
 
