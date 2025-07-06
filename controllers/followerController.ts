@@ -364,46 +364,52 @@ export const getFollower = async (req: Request, res: Response) => {
 
 
 export const sendBulkInvites = async (req: Request, res: Response) => {
-  const { followerIds } = req.body;
-  const inviterId = req.user._id;
+  try {
+    const { followerIds } = req.body;
+    const inviterId = req.user._id;
 
-  const inviter = await User.findById(inviterId);
-  if (!inviter || (!["superAdmin", "admin", "editor"].includes(inviter.role)) || !inviter.isActive) {
-    return res.status(403).json({ message: "Only paid users can send invites." });
-  }
-
-  const mailgun = new Mailgun(formData);
-  const mg = mailgun.client({
-    username: "api",
-    key: process.env.MAILGUN_API_KEY!,
-  });
-
-  const followers = await Follower.find({ _id: { $in: followerIds } });
-  const sentEmails: string[] = [];
-
-  for (const follower of followers) {
-    const inviteLink = `${frontend_url}/signup?ref=${follower.referralCode}`;
-    const htmlContent = sendInvitesTemplate(
-      String(inviteLink),
-      String(follower.firstName),
-      String(follower.lastName)
-    );
-
-    const emailData = {
-      from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
-      to: follower.email,
-      subject: "You're Invited to Join!",
-      html: htmlContent,
-    };
-    try {
-      await mg.messages.create(process.env.MAILGUN_DOMAIN!, emailData);
-      sentEmails.push(follower.email);
-    } catch (error) {
-      console.error(`Failed to send email to ${follower.email}:`, error);
+    const inviter = await User.findById(inviterId);
+    if (!inviter || (!["superAdmin", "admin", "editor"].includes(inviter.role)) || !inviter.isActive) {
+      return res.status(403).json({ message: "Only paid users can send invites." });
     }
-  }
 
-  res.json({ message: `Invitations sent to ${sentEmails.length} followers.` });
+    const mailgun = new Mailgun(formData);
+    const mg = mailgun.client({
+      username: "api",
+      key: process.env.MAILGUN_API_KEY!,
+    });
+
+    const followers = await Follower.find({ _id: { $in: followerIds } });
+    const sentEmails: string[] = [];
+
+    for (const follower of followers) {
+      try {
+      const inviteLink = `${frontend_url}/signup?ref=${follower.referralCode}`;
+      const htmlContent = sendInvitesTemplate(
+        String(inviteLink),
+        String(follower.firstName),
+        String(follower.lastName)
+      );
+
+      const emailData = {
+        from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
+        to: follower.email,
+        subject: "You're Invited to Join!",
+        html: htmlContent,
+      };
+      
+        await mg.messages.create(process.env.MAILGUN_DOMAIN!, emailData);
+        sentEmails.push(follower.email);
+      } catch (error) {
+        console.error(`Failed to send email to ${follower.email}:`, error);
+      }
+    }
+
+    res.json({ message: `Invitations sent to ${sentEmails.length} followers.` });
+  } catch (err: any) {
+    console.error("sendBulkInvites failed:", err.message);
+    return res.status(500).json({ message: "Server error. Please try again later." });
+  }
 };
 
 
