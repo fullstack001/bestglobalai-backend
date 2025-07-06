@@ -180,8 +180,7 @@ export const uploadHubspotFollowers = async (req: Request, res: Response) => {
         const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
         if (missingHeaders.length > 0) {
           headersValidated = false;
-          console.error(`Invalid CSV headers. Missing: ${missingHeaders.join(", ")}`);
-          // Stop further processing by destroying the stream
+          console.error(`Invalid CSV headers. Missing: ${missingHeaders.join(", ")}`);         
           stream.destroy();
           return res.status(400).json({
             message: `Invalid CSV headers. Missing: ${missingHeaders.join(", ")}`,
@@ -390,9 +389,12 @@ export const sendBulkInvites = async (req: Request, res: Response) => {
       subject: "You're Invited to Join!",
       html: htmlContent,
     };
-
-    await mg.messages.create(process.env.MAILGUN_DOMAIN!, emailData);
-    sentEmails.push(follower.email);
+    try {
+      await mg.messages.create(process.env.MAILGUN_DOMAIN!, emailData);
+      sentEmails.push(follower.email);
+    } catch (error) {
+      console.error(`Failed to send email to ${follower.email}:`, error);
+    }
   }
 
   res.json({ message: `Invitations sent to ${sentEmails.length} followers.` });
