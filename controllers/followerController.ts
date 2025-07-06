@@ -272,13 +272,19 @@ export const sendInvites = async (req: Request, res: Response) => {
       subject: "You're Invited to Join!",
       html: htmlContent,
     };
+    try {
+      await mg.messages.create(
+        process.env.MAILGUN_DOMAIN || "your-mailgun-domain",
+        emailData
+      ); 
+      res.json({ message: "Invitations sent!" });
+    } catch (error) {
+      console.error(`Failed to send email to ${follower.email}:`, error);
+      return res.status(500).json({ message: "Failed to send invitation." });
 
-    await mg.messages.create(
-      process.env.MAILGUN_DOMAIN || "your-mailgun-domain",
-      emailData
-    );
+    }
 
-    res.json({ message: "Invitations sent!" });
+    
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
