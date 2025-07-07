@@ -55,12 +55,16 @@ export const getMediaUrl = async (req: Request, res: Response) => {
       );
 
       const { uploadUrl, accessUrl, contentType } = data;
+      console.log("Upload URL:", uploadUrl, accessUrl, contentType);
 
       // Step 2: Upload the media file using the presigned URL
+      const fileStats = await fs.promises.stat(filePath);
       const fileStream = fs.createReadStream(filePath);
+
       await axios.put(uploadUrl, fileStream, {
         headers: {
           "Content-Type": contentType,
+          "Content-Length": fileStats.size, // Explicitly set Content-Length
         },
       });
 
