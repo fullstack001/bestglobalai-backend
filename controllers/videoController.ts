@@ -49,7 +49,7 @@ export const createVideo = async (req: Request, res: Response) => {
     const response = await heygenApi.post("/v2/video/generate", creatingData);
     const video = new Video({
       user: req.user.id,
-      video_id: response.data.data.video_id,
+      video_id: (response.data as { data: { video_id: string } }).data.video_id,
     });
     await video.save();
     res.json({ resultData: response.data });

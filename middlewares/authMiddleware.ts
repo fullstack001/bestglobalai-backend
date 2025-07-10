@@ -194,7 +194,7 @@ export const validateCaptcha = async (
       }
     );
 
-    if (!response.data.success) {
+    if (!(response.data as { success: boolean }).success) {
       return res.status(400).json({ message: "Invalid captcha verification." });
     }
 

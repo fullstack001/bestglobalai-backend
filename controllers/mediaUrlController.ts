@@ -54,7 +54,15 @@ export const getMediaUrl = async (req: Request, res: Response) => {
         `/media/uploadUrl?fileName=${originalname}&contentType=${mimetype}`
       );
 
-      const { uploadUrl, accessUrl, contentType } = data;
+      // Define the expected type for the response data
+      type AyrshareResponse = {
+        uploadUrl: string;
+        accessUrl: string;
+        contentType: string;
+      };
+
+      // Cast data to the expected type
+      const { uploadUrl, accessUrl, contentType } = data as AyrshareResponse;
       console.log("Upload URL:", uploadUrl, accessUrl, contentType);
 
       // Step 2: Upload the media file using the presigned URL

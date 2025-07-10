@@ -75,7 +75,10 @@ export const translateVideo = async (req: Request, res: Response) => {
     // Store translation record in database
     await Translate.create({
       user: req.user.id,
-      video_translate_id: response.data.data.video_translate_id,
+      // Cast response.data to the expected type
+      video_translate_id: (
+        response.data as { data: { video_translate_id: string } }
+      ).data.video_translate_id,
       temp: req.file ? req.file.filename : undefined,
     });
 

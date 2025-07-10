@@ -35,11 +35,19 @@ export const createUserProfile = async (req: Request, res: Response) => {
     });
 
     // Ensure response contains the required fields
-    if (!response.data || !response.data.refId || !response.data.profileKey) {
+    const ayrshareData = response.data as AyrshareResponse;
+    if (!ayrshareData || !ayrshareData.refId || !ayrshareData.profileKey) {
       return res.status(400).json({ error: "Invalid response from Ayrshare" });
     }
 
-    const { refId, profileKey } = response.data;
+    // Define the expected type for Ayrshare API response
+    interface AyrshareResponse {
+      refId: string;
+      profileKey: string;
+    }
+
+    // Cast response.data to the defined type
+    const { refId, profileKey } = response.data as AyrshareResponse;
 
     // Update user document with refId and profileKey
     user.ayrshareRefId = refId;
@@ -98,6 +106,7 @@ export const postMedia = async (req: Request, res: Response) => {
         "Profile-Key": req.user.ayrshareProfileKey,
       },
     });
+
     res.status(200).json({ data: response.data });
   } catch (error: any) {
     console.log(error.response?.data || error.message);

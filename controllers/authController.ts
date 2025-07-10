@@ -89,7 +89,29 @@ const login = async (req: Request, res: Response) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    if (!user.isActive) {
+      // Generate a new validation code and expiration
+      const validationCode = `${Math.floor(100000 + Math.random() * 900000)}`;
+      const validationCodeExpiration = moment().add(10, "minutes").toDate();
+
+      user.validationCode = validationCode;
+      user.validationCodeExpiration = validationCodeExpiration;
+      await user.save();
+
+      // Send validation email
+      await sendValidationEmail(user.email, user.fullName, validationCode);
+
+      return res.status(429).json({
+        message:
+          "Please verify your email before logging in. A new verification code has been sent to your email.",
+      });
+    }
+
+    if (!(await user.comparePassword(password))) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
@@ -273,6 +295,7 @@ async function sendValidationEmail(
       if (error) {
         reject(error);
       } else {
+        console.log("Email sent successfully:", body);
         resolve(body);
       }
     });
