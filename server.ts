@@ -23,6 +23,7 @@ import mediaUrlRoutes from "./routes/mediaUrlRoutes";
 import extraRoutes from "./routes/extraRoutes";
 import followerroutes from "./routes/followerRoutes";
 import chatRoutes from './routes/chatRoutes'
+import categoryRoutes from "./routes/categoryRoutes";
 
 import { createDefaultAdmin } from "./controllers/userController";
 import "./tasks/scheduleNotifications";
@@ -82,6 +83,7 @@ app.use("/api/media-url", mediaUrlRoutes);
 app.use("/api/extra", extraRoutes);
 app.use("/api/followers", followerroutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/categories", categoryRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server running");

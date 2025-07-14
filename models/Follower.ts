@@ -15,6 +15,7 @@ interface IFollower extends Document {
   email: string;
   status: "Pending" | "Active";
   referralCode: string;
+  category: mongoose.Schema.Types.ObjectId;
 }
 
 const followerSchema = new Schema<IFollower>({
@@ -32,6 +33,11 @@ const followerSchema = new Schema<IFollower>({
   email: { type: String, required: true, unique: true },
   status: { type: String, enum: ["Pending", "Active"], default: "Pending" },
   referralCode: { type: String, required: true },
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true,
+  },
 });
 
 const Follower = mongoose.model<IFollower>("Follower", followerSchema);

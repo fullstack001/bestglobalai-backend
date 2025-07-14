@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
+import { Types } from "mongoose";
 import csvParser from "csv-parser";
 import fs from "fs";
 import path from "path";
 import Follower from "../models/Follower";
 import User from "../models/User";
+import Category from "../models/Category";
 import Mailgun from "mailgun.js";
 import formData from "form-data";
 import multer from "multer";
@@ -12,6 +14,7 @@ import { sendInvites as sendInvitesTemplate } from "../config/mailTemplate";
 dotenv.config();
 
 const frontend_url = process.env.FRONTEND_URL;
+
 interface MulterFile {
   filename: string;
   path: string;
@@ -75,6 +78,20 @@ export const uploadFollowers = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "File does not exist." });
     }
 
+    let defaultCategory = await Category.findOne({
+      user: inviterId,
+      isDefault: true,
+    });
+
+    if (!defaultCategory) {
+      // create it if it doesn't exist
+      defaultCategory = await Category.create({
+        user: inviterId,
+        name: "Default",
+        isDefault: true,
+      });
+    }
+
     const followers: any[] = [];
     fs.createReadStream(csvFilePath)
       .pipe(csvParser({ headers: csvHeaders, skipLines: 1 }))
@@ -94,6 +111,7 @@ export const uploadFollowers = async (req: Request, res: Response) => {
           email: row.email,
           status: "Pending",
           referralCode: user._id,
+          category : defaultCategory._id, // Assign default category
         });
       })
       .on("end", async () => {
@@ -119,6 +137,7 @@ export const uploadFollowers = async (req: Request, res: Response) => {
                 phone2: followerData.phone2,
                 status: followerData.status,
                 referralCode: followerData.referralCode,
+                category: followerData.category,
               }
             );
           } else {
@@ -128,7 +147,7 @@ export const uploadFollowers = async (req: Request, res: Response) => {
           }
         }
         // await Follower.insertMany(followers);
-        // Delete file after processing
+    
         if (fs.existsSync(csvFilePath)) {
           fs.unlinkSync(csvFilePath);
         }
@@ -159,20 +178,50 @@ export const uploadHubspotFollowers = async (req: Request, res: Response) => {
     }
 
     const requiredHeaders = [
-      "Record ID",
-      "First Name",
-      "Last Name",
+      "Name",
+      "First name",
+      "Last name",
       "Email",
-      "Phone Number",
-      "Lead Status",
-      "Favorite Content Topics",
-      "Preferred channels",
-      "Create Date"
+      "Email Status",
+      "Title",
+      "Linkedin",
+      "Location",
+      "Added On",
+      "Company Name",
+      "Company Domain",
+      "Company Website",
+      "Company Employee Count",
+      "Company Employee Count Range",
+      "Company Founded",
+      "Company Industry",
+      "Company Type",
+      "Company Headquarters",
+      "Company Revenue Range",
+      "Company Linkedin Url",
+      "Company Crunchbase Url",
+      "Company Funding Rounds",
+      "Company Last Funding Round Amount",
+      "Company Logo Url Primary",
+      "Company Logo Url Secondary",      
     ];
 
     const followers: any[] = [];
     let headersValidated = false;
     const stream = fs.createReadStream(csvFilePath);
+
+    let defaultCategory = await Category.findOne({
+      user: inviterId,
+      isDefault: true,
+    });
+
+    if (!defaultCategory) {
+      // create it if it doesn't exist
+      defaultCategory = await Category.create({
+        user: inviterId,
+        name: "Default",
+        isDefault: true,
+      });
+    }
 
     stream
       .pipe(csvParser())
@@ -198,19 +247,20 @@ export const uploadHubspotFollowers = async (req: Request, res: Response) => {
 
         followers.push({
           inviterId,
-          firstName: row["First Name"] || "",
-          lastName: row["Last Name"] || "",
-          companyName: "", // Not available in HubSpot export
+          firstName: row["First name"] || "",
+          lastName: row["Last name"] || "",
+          companyName: row["Company Name"], // Not available in HubSpot export
           address: "",
           city: "",
           country: "",
           state: "",
           zip: "",
-          phone1: row["Phone Number"] || "",
+          phone1: "",
           phone2: "", // HubSpot only gives 1 phone
           email,
           status: "Pending",
           referralCode: String(inviterId),
+          category: defaultCategory._id, // Assign default category
         });
       })
       .on("end", async () => {
@@ -225,7 +275,7 @@ export const uploadHubspotFollowers = async (req: Request, res: Response) => {
         }
 
         fs.unlinkSync(csvFilePath);
-        res.json({ message: "HubSpot followers uploaded and formatted successfully." });
+        res.json({ message: "Leads to followers uploaded and formatted successfully." });
       })
       .on("error", (err) => {
         console.error("CSV parse error:", err);
@@ -309,19 +359,20 @@ export const updateFollowerStatus = async (req: Request, res: Response) => {
 
 // Get all followers
 export const getFollowers = async (req: Request, res: Response) => {
-  //getfollowers must get has inviterId by req.user._id
   const inviterId = req.user._id;
   try {
-    //followers find by inviterId
-    const followers = await Follower.find({ inviterId });
+    // const followers = await Follower.find({ inviterId });
+    const followers = await Follower.find({ inviterId }).populate("category", "_id name isDefault");
+
     const emails = followers.map((f) => f.email);
     const existingUsers = await User.find({ email: { $in: emails } });
 
-     const followersWithStatus = followers.map((follower) => {
+    const followersWithStatus = followers.map((follower) => {
       const isRegistered = existingUsers.some((u) => u.email === follower.email);
       return {
         ...follower.toObject(),
         status: isRegistered ? "Active" : follower.status,
+        category: follower.category, // Use category directly as it is an ObjectId
       };
     });
 
@@ -329,6 +380,37 @@ export const getFollowers = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
+};
+
+export const fetchFollowersByCategory = async (req: Request, res: Response) => {
+  const inviterId = req.user._id;  
+  const selectedCategory = req.body.categoryId;
+  try {
+    const followers = await Follower.find({ inviterId }).populate("category", "_id name isDefault");
+    if (!followers || followers.length === 0) {
+      return res.status(404).json({ message: "No followers found." });
+    }
+   
+    const filteredFollowers = selectedCategory === "all"
+      ? followers
+      : followers.filter(f => (f.category as any)?._id?.toString() === selectedCategory);
+
+    const emails = filteredFollowers.map((f) => f.email);
+    const existingUsers = await User.find({ email: { $in: emails } });
+
+    const followersWithStatus = filteredFollowers.map((follower) => {
+      const isRegistered = existingUsers.some((u) => u.email === follower.email);
+      return {
+        ...follower.toObject(),
+        status: isRegistered ? "Active" : follower.status,
+        category: follower.category, 
+      };
+    });
+
+    res.json({ followers: followersWithStatus });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  } 
 };
 
 // Add a new follower
@@ -418,6 +500,22 @@ export const deleteBulkFollowers = async (req: Request, res: Response) => {
   try {
     await Follower.deleteMany({ _id: { $in: followerIds } });
     res.status(200).json({ message: "Selected followers deleted." });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
+export const updateFollowerCategory = async (req: Request, res: Response) => {
+  try {
+    const { followerId, categoryId } = req.body;
+
+    const follower = await Follower.findById(followerId);
+    if (!follower) return res.status(404).json({ message: "Follower not found." });
+
+    follower.category = categoryId;
+    await follower.save();
+
+    res.status(200).json({ message: "Follower category updated." });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
