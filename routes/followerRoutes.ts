@@ -14,7 +14,8 @@ import {
   deleteBulkFollowers,
   uploadHubspotFollowers,
   updateFollowerCategory,
-  fetchFollowersByCategory
+  fetchFollowersByCategory,
+  updateBulkFollowerCategory 
 } from "../controllers/followerController";
 import { authenticateToken } from "../middlewares/authMiddleware";
 
@@ -61,5 +62,5 @@ router.post("/sendBulkInvites", authenticateToken, sendBulkInvites);
 router.post("/deleteBulkFollowers", authenticateToken, deleteBulkFollowers);
 router.post("/updateCategory", authenticateToken, updateFollowerCategory);
 router.post("/category", authenticateToken, fetchFollowersByCategory);
-
+router.post("/bulkUpdateCategory", authenticateToken, updateBulkFollowerCategory);
 export default router;

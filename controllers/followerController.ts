@@ -520,3 +520,23 @@ export const updateFollowerCategory = async (req: Request, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+
+
+export const updateBulkFollowerCategory = async (req: Request, res: Response) => {
+  try {
+    const { followerIds, categoryId } = req.body;
+
+    if (!Array.isArray(followerIds) || followerIds.length === 0) {
+      return res.status(400).json({ message: "No followers selected." });
+    }
+
+    await Follower.updateMany(
+      { _id: { $in: followerIds } },
+      { $set: { category: categoryId } }
+    );
+
+    res.status(200).json({ message: "Follower categories updated successfully." });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
