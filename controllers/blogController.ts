@@ -54,20 +54,17 @@ export const createBlog = async (req: Request, res: Response) => {
 
 export const getBlogs = async (req: Request, res: Response) => {
   try {
-
     const blogs = await Blog.find().sort({ createdAt: -1 });
     for (const blog of blogs) {
       if (!blog.name) {
         let baseSlug = slugify(blog.title, { lower: true, strict: true });
         let slug = baseSlug;
         let counter = 1;
-
-        // Ensure the slug is unique
+       
         while (await Blog.findOne({ name: slug })) {
           slug = `${baseSlug}-${counter}`;
           counter++;
         }
-
         blog.name = slug;
         await blog.save();
       }
@@ -81,8 +78,7 @@ export const getBlogs = async (req: Request, res: Response) => {
 
 export const getMyBlogs = async (req: Request, res: Response) => {
   try {
-    const userId = req.user._id;
-    // const books = await Book.find();
+    const userId = req.user._id;  
     const blogs = await Blog.find({ userId })
       .populate("userId")
       .sort({ createdAt: -1 });
@@ -97,16 +93,12 @@ export const updateBlog = async (req: Request, res: Response) => {
   try {
     const blogName = req.params.name;
     const blog = await Blog.findOne({ name: blogName });
-    const { title, content } = req.body;
- 
+    const { title, content } = req.body; 
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
     }   
-
     blog.title = title || blog.title;
     blog.content = content || blog.content;
-
-    // Handle cover image replacement
     if (req.files && (req.files as any)["featuredImage"]) {
       const featuredImage = (
         req.files as { [fieldname: string]: MulterFile[] }
@@ -117,7 +109,6 @@ export const updateBlog = async (req: Request, res: Response) => {
             ][0].filename
           }`
         : null;
-
       if (featuredImage) {
         if (blog.featuredImage) {
           const oldFeaturedImage = path.join(
@@ -129,7 +120,6 @@ export const updateBlog = async (req: Request, res: Response) => {
         blog.featuredImage = featuredImage;
       }
     }
-
     await blog.save();
     res.status(200).json({ message: "Blog updated successfully!", blog });
   } catch (err) {
@@ -145,11 +135,6 @@ export const deleteBlog = async (req: Request, res: Response) => {
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
     }   
-
-    if (!blog) {
-      return res.status(404).json({ message: "Blog not found" });
-    }
-
     const featuredImage = blog.featuredImage
       ? path.join(__dirname, `../${blog.featuredImage}`)
       : null;
@@ -222,17 +207,13 @@ export const getAllBlogs = async (req: Request, res: Response) => {
 
 export const getBlogsPaginated = async (req: Request, res: Response) => {
     try {
-      const { page = 1, limit = 10 } = req.query;
-  
-      const skip = (Number(page) - 1) * Number(limit);
-  
+      const { page = 1, limit = 10 } = req.query;  
+      const skip = (Number(page) - 1) * Number(limit);  
       const blogs = await Blog.find()
         .sort({ createdAt: -1 }) 
         .skip(skip)
-        .limit(Number(limit));
-  
-      const totalBlogs = await Blog.countDocuments();
-  
+        .limit(Number(limit));  
+      const totalBlogs = await Blog.countDocuments();  
       res.status(200).json({
         blogs,
         totalBlogs,
