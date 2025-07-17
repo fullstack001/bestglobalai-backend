@@ -44,12 +44,12 @@ router.get("/latest", getLatestBlogs);
 router.get("/mine", isAdmin, getMyBlogs);
 router.get("/paginated", getBlogsPaginated);
 router.put(
-  "/:id",  
+  "/:name",  
   upload.fields([{ name: "featuredImage", maxCount: 1 }]),
   updateBlog
 );
-router.get("/:id", getBlogDetail);
-router.delete("/:id", deleteBlog);
+router.get("/:name", getBlogDetail);
+router.delete("/:name", deleteBlog);
 
 
 export default router;

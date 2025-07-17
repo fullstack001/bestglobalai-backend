@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 // Define the Blog interface extending mongoose.Document
 export interface BlogDocument extends Document {
   title: string;
+  name: string;
   featuredImage?: string;
   content: string;
   userId: mongoose.Types.ObjectId;
@@ -14,6 +15,7 @@ export interface BlogDocument extends Document {
 const BlogSchema: Schema = new mongoose.Schema(
   {
     title: { type: String, required: true },
+    name: { type: String, required: true, unique: true },
     featuredImage: { type: String },
     content: { type: String, required: true },
     userId: {
