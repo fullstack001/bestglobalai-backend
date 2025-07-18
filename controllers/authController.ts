@@ -5,6 +5,7 @@ import mg from "mailgun-js";
 import crypto from "crypto";
 
 import User from "../models/User";
+import Category from "../models/Category";
 import Follower from "../models/Follower";
 import Subscription from "../models/Subscription";
 import {
@@ -56,15 +57,31 @@ const signup = async (req: Request, res: Response) => {
           }
         );
       } else {
-        const newFollower = new Follower({
-          email,
-          inviterId: referralCode,
-          status: "Active",
-          firstName: fullName.split(" ")[0],
-          lastName: fullName.split(" ")[1] || "",
-          referralCode: referralCode,
+      
+      let defaultCategory = await Category.findOne({
+        user: referralCode,
+        isDefault: true,
+      });
+
+      if (!defaultCategory) {
+        // create it if it doesn't exist
+        defaultCategory = await Category.create({
+          user: referralCode,
+          name: "Default",
+          isDefault: true,
         });
-        await newFollower.save();
+      }
+      const newFollower = new Follower({
+        email,
+        inviterId: referralCode,
+        status: "Active",
+        firstName: fullName.split(" ")[0],
+        lastName: fullName.split(" ")[1] || "",
+        referralCode: referralCode,
+        category: defaultCategory._id,
+      });
+      
+      await newFollower.save();
       }
     }
 
