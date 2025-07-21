@@ -3,6 +3,7 @@ import Book from "../models/Book";
 import User from "../models/User";
 import Follower from "../models/Follower";
 import JSZip from "jszip";
+import slugify from "slugify";
 import fs from "fs";
 import path from "path";
 
