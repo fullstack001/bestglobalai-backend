@@ -197,164 +197,110 @@ export const createBook = async (req: Request, res: Response) => {
     newBook.ebookFile = `/uploads/${newBook._id}.epub`;
     await newBook.save();
 
-    const new_zip = new JSZip();
-    const new_mimetype = "application/epub+zip";
+    const watermarkZip = new JSZip();
+    watermarkZip.file("mimetype", "application/epub+zip");
 
-    new_zip.file("mimetype", new_mimetype);
+    // container.xml
+    watermarkZip.file("META-INF/container.xml", `<?xml version="1.0"?>
+    <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+      <rootfiles>
+        <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml" />
+      </rootfiles>
+    </container>`);
 
-    const new_container =
-      '<?xml version="1.0"?>' +
-      '<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">' +
-      "  <rootfiles>" +
-      '    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml" />' +
-      "  </rootfiles>" +
-      "</container>";
-    new_zip.file("META-INF/container.xml", new_container);
-
-    const new_metadata =
-      '<?xml version="1.0"?>' +
-      '<package version="3.0" xml:lang="en" xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id">' +
-      '  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">' +
-      `    <dc:title>${newBook.title}</dc:title>` +
-      `    <dc:creator>${newBook.author}</dc:creator>` +
-      "  </metadata>" +
-      "  <manifest>" +
-      newBook.pages
-        .map(
-          (_, index: number) =>
-            `<item id="chapter${index}" href="chapter${index}.xhtml" media-type="application/xhtml+xml"/>`
-        )
-        .join("") +
-      '    <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>' +
-      "  </manifest>" +
-      '  <spine toc="toc">' +
-      newBook.pages
-        .map((_, index: number) => `<itemref idref="chapter${index}"/>`)
-        .join("") +
-      "</spine>" +
-      "</package>";
-    new_zip.file("OEBPS/content.opf", new_metadata);
-
-    const new_toc =
-      '<?xml version="1.0"?>' +
-      '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">' +
-      "  <head>" +
-      '    <meta name="dtb:uid" content="urn:uuid:B9B412F2-CAAD-4A44-B91F-A375068478A0"/>' +
-      '    <meta name="dtb:depth" content="1"/>' +
-      '    <meta name="dtb:totalPageCount" content="0"/>' +
-      '    <meta name="dtb:maxPageNumber" content="0"/>' +
-      "  </head>" +
-      "  <docTitle>" +
-      `    <text>${newBook.title}</text>` +
-      "  </docTitle>" +
-      "  <navMap>" +
-      newBook.pages
-        .map(
-          (page: Page, index: number) =>
-            `<navPoint id="navpoint-${index + 1}" playOrder="${index + 1}">` +
-            `  <navLabel>` +
-            `    <text>${page.name}</text>` +
-            `  </navLabel>` +
-            `  <content src="chapter${index}.xhtml"/>` +
-            `</navPoint>`
-        )
-        .join("") +
-      "  </navMap>" +
-      "</ncx>";
-    new_zip.file("OEBPS/toc.ncx", new_toc);
-
+    // Add watermark image
     const logoPath = path.join(__dirname, "../assets/watermark.png");
     const logoBuffer = fs.readFileSync(logoPath);
-    new_zip.file("OEBPS/logo.png", logoBuffer);
+    watermarkZip.file("OEBPS/logo.png", logoBuffer);
 
-    const manifest =
-      '<?xml version="1.0"?>' +
-      '<package version="3.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id">' +
-      "  <metadata>" +
-      `    <dc:title>${title}</dc:title>` +
-      `    <dc:creator>${author}</dc:creator>` +
-      "  </metadata>" +
-      "  <manifest>" +
-      newBook.pages
-        .map(
-          (_: any, index: number) =>
-            `<item id="page${index}" href="page${index}.xhtml" media-type="application/xhtml+xml"/>`
-        )
-        .join("") +
-      '    <item id="logo" href="logo.png" media-type="image/png"/>' +
-      "  </manifest>" +
-      "  <spine>" +
-      newBook.pages
-        .map((_: any, index: number) => `<itemref idref="page${index}"/>`)
-        .join("") +
-      "  </spine>" +
-      "</package>";
-    new_zip.file("OEBPS/content.opf", manifest);
+    // Build pages with watermark
+    let manifestItems = "";
+    let spineItems = "";
+    let navPoints = "";
 
     newBook.pages.forEach((page: Page, index: number) => {
-      const sanitizedContent = page.content
-        .replace(/<img([^>]+)>/gi, "<img$1 />") // Self-close <img> tags
-        .replace(/<p([^>]*)>(.*?)<\/?p>/gi, (_, pAttr, pContent) => {
-          if (pContent.includes("<img")) {
-            // If <p> contains <img>, split into separate <p> and <img /> outside
-            return (
-              `<p${pAttr}>${pContent.replace(/<img[^>]+>/g, "")}</p>` +
-              pContent.match(/<img[^>]+>/g).join("")
-            );
-          }
-          return `<p${pAttr}>${pContent}</p>`;
-        })
-        .replace(/<br>/g, "<br />") // Self-close <br> tags
-        .replace(/&nbsp;/g, "\u00A0") // Replace non-breaking spaces
-        .replace(/<div([^>]*)>(.*?)<\/?div>/gi, "<div$1>$2</div>");
+      const content = page.content
+        .replace(/<img([^>]+)>/gi, "<img$1 />")
+        .replace(/<br>/g, "<br />")
+        .replace(/&nbsp;/g, "\u00A0");
 
-      const text =
-        '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
-        "<!DOCTYPE html>" +
-        '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="en" lang="en">' +
-        "<head>" +
-        `  <title>${page.name}</title>` +
-        "<style>" +
-        "  body {" +
-        "    position: relative;" +
-        "    font-family: Arial, sans-serif;" +
-        "  }" +
-        "  .watermark {" +
-        "    position: absolute;" +
-        "    top: -5px;" +
-        "    left: 0;" +
-        "    right: 0;" +
-        "    bottom: 0;" +
-        "    z-index: -1;" +
-        "    opacity: 0.3;" +
-        `    background-image: url('logo.png');` +
-        "    background-repeat: no-repeat;" +
-        // "    background-position: center;" +
-        "    background-size: 200px;" +
-        // "    transform: rotate(-30deg);" +
-        "  }" +
-        "</style>" +
-        "</head>" +
-        `<body>` +
-        `<div class="watermark"></div>` +
-        `<section><h1>${page.name}</h1><p>${sanitizedContent}</p></section>` +
-        "</body>" +
-        "</html>";
+      const pageHtml = `<?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE html>
+        <html xmlns="http://www.w3.org/1999/xhtml">
+        <head>
+          <title>${page.name}</title>
+          <style>
+            body {
+              position: relative;
+              font-family: Arial, sans-serif;
+            }
+            .watermark {
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              z-index: -1;
+              opacity: 0.1;
+              background-image: url('logo.png');
+              background-repeat: no-repeat;
+              background-position: center;
+              background-size: 200px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="watermark"></div>
+          <section><h1>${page.name}</h1><p>${content}</p></section>
+        </body>
+        </html>`;
 
-      new_zip.file(`OEBPS/chapter${index}.xhtml`, text);
+        const filename = `chapter${index}.xhtml`;
+        watermarkZip.file(`OEBPS/${filename}`, pageHtml);
+
+        manifestItems += `<item id="chapter${index}" href="${filename}" media-type="application/xhtml+xml"/>`;
+        spineItems += `<itemref idref="chapter${index}"/>`;
+        navPoints += `<navPoint id="nav-${index}" playOrder="${index + 1}">
+          <navLabel><text>${page.name}</text></navLabel>
+          <content src="${filename}"/>
+        </navPoint>`;
     });
 
-    // Generate the EPUB file
-    const new_ebookBuffer = await new_zip.generateAsync({ type: "nodebuffer" });
+    // Add logo & TOC
+    manifestItems += `<item id="logo" href="logo.png" media-type="image/png"/>`;
+    manifestItems += `<item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>`;
 
-    // Save the generated EPUB file to disk
-    const new_ebookFilePath = path.join(
-      __dirname,
-      `../uploads/${newBook._id}_watermark.epub`
-    );
-    fs.writeFileSync(new_ebookFilePath, new_ebookBuffer);
+    // content.opf
+    const opf = `<?xml version="1.0"?>
+    <package version="3.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id">
+      <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <dc:title>${newBook.title}</dc:title>
+        <dc:creator>${newBook.author}</dc:creator>
+      </metadata>
+      <manifest>
+        ${manifestItems}
+      </manifest>
+      <spine toc="toc">
+        ${spineItems}
+      </spine>
+    </package>`;
+    watermarkZip.file("OEBPS/content.opf", opf);
 
-    // Add the generated ebook path to the book document
+    // toc.ncx
+    const ncx = `<?xml version="1.0"?>
+    <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+      <head>
+        <meta name="dtb:uid" content="urn:uuid:${newBook._id}"/>
+      </head>
+      <docTitle><text>${newBook.title}</text></docTitle>
+      <navMap>${navPoints}</navMap>
+    </ncx>`;
+    watermarkZip.file("OEBPS/toc.ncx", ncx);
+
+    // Save the file
+    const watermarkEpubPath = path.join(__dirname, `../uploads/${newBook._id}_watermark.epub`);
+    const watermarkBuffer = await watermarkZip.generateAsync({ type: "nodebuffer" });
+    fs.writeFileSync(watermarkEpubPath, watermarkBuffer);
     newBook.watermarkFile = `/uploads/${newBook._id}_watermark.epub`;
     await newBook.save();
 
@@ -674,164 +620,111 @@ export const updateBook = async (req: Request, res: Response) => {
     book.ebookFile = `/uploads/${book._id}.epub`;
     await book.save();
 
-    const new_zip = new JSZip();
-    const new_mimetype = "application/epub+zip";
+    const watermarkZip = new JSZip();
+    watermarkZip.file("mimetype", "application/epub+zip");
 
-    new_zip.file("mimetype", new_mimetype);
+    // container.xml
+    watermarkZip.file("META-INF/container.xml", `<?xml version="1.0"?>
+    <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+      <rootfiles>
+        <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml" />
+      </rootfiles>
+    </container>`);
 
-    const new_container =
-      '<?xml version="1.0"?>' +
-      '<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">' +
-      "  <rootfiles>" +
-      '    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml" />' +
-      "  </rootfiles>" +
-      "</container>";
-    new_zip.file("META-INF/container.xml", new_container);
-
-    const new_metadata =
-      '<?xml version="1.0"?>' +
-      '<package version="3.0" xml:lang="en" xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id">' +
-      '  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">' +
-      `    <dc:title>${book.title}</dc:title>` +
-      `    <dc:creator>${book.author}</dc:creator>` +
-      "  </metadata>" +
-      "  <manifest>" +
-      book.pages
-        .map(
-          (_, index: number) =>
-            `<item id="chapter${index}" href="chapter${index}.xhtml" media-type="application/xhtml+xml"/>`
-        )
-        .join("") +
-      '    <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>' +
-      "  </manifest>" +
-      '  <spine toc="toc">' +
-      book.pages
-        .map((_, index: number) => `<itemref idref="chapter${index}"/>`)
-        .join("") +
-      "</spine>" +
-      "</package>";
-    new_zip.file("OEBPS/content.opf", new_metadata);
-
-    const new_toc =
-      '<?xml version="1.0"?>' +
-      '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">' +
-      "  <head>" +
-      '    <meta name="dtb:uid" content="urn:uuid:B9B412F2-CAAD-4A44-B91F-A375068478A0"/>' +
-      '    <meta name="dtb:depth" content="1"/>' +
-      '    <meta name="dtb:totalPageCount" content="0"/>' +
-      '    <meta name="dtb:maxPageNumber" content="0"/>' +
-      "  </head>" +
-      "  <docTitle>" +
-      `    <text>${book.title}</text>` +
-      "  </docTitle>" +
-      "  <navMap>" +
-      book.pages
-        .map(
-          (page: Page, index: number) =>
-            `<navPoint id="navpoint-${index + 1}" playOrder="${index + 1}">` +
-            `  <navLabel>` +
-            `      <text>${page.name}</text>` +
-            `  </navLabel>` +
-            `  <content src="chapter${index}.xhtml"/>` +
-            `</navPoint>`
-        )
-        .join("") +
-      "  </navMap>" +
-      "</ncx>";
-    new_zip.file("OEBPS/toc.ncx", new_toc);
-
+    // Add watermark image
     const logoPath = path.join(__dirname, "../assets/watermark.png");
     const logoBuffer = fs.readFileSync(logoPath);
-    new_zip.file("OEBPS/logo.png", logoBuffer);
+    watermarkZip.file("OEBPS/logo.png", logoBuffer);
 
-    const manifest =
-      '<?xml version="1.0"?>' +
-      '<package version="3.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id">' +
-      "  <metadata>" +
-      `    <dc:title>${title}</dc:title>` +
-      `    <dc:creator>${author}</dc:creator>` +
-      "  </metadata>" +
-      "  <manifest>" +
-      book.pages
-        .map(
-          (_: any, index: number) =>
-            `<item id="page${index}" href="page${index}.xhtml" media-type="application/xhtml+xml"/>`
-        )
-        .join("") +
-      '    <item id="logo" href="logo.png" media-type="image/png"/>' +
-      "  </manifest>" +
-      "  <spine>" +
-      book.pages
-        .map((_: any, index: number) => `<itemref idref="page${index}"/>`)
-        .join("") +
-      "  </spine>" +
-      "</package>";
-    new_zip.file("OEBPS/content.opf", manifest);
+    // XHTML chapters
+    let manifestItems = "";
+    let spineItems = "";
+    let navPoints = "";
 
     book.pages.forEach((page: Page, index: number) => {
-      const sanitizedContent = page.content
-        .replace(/<img([^>]+)>/gi, "<img$1 />") // Self-close <img> tags
-        .replace(/<p([^>]*)>(.*?)<\/?p>/gi, (_, pAttr, pContent) => {
-          if (pContent.includes("<img")) {
-            // If <p> contains <img>, split into separate <p> and <img /> outside
-            return (
-              `<p${pAttr}>${pContent.replace(/<img[^>]+>/g, "")}</p>` +
-              pContent.match(/<img[^>]+>/g).join("")
-            );
-          }
-          return `<p${pAttr}>${pContent}</p>`;
-        })
-        .replace(/<br>/g, "<br />") // Self-close <br> tags
-        .replace(/&nbsp;/g, "\u00A0") // Replace non-breaking spaces
-        .replace(/<div([^>]*)>(.*?)<\/?div>/gi, "<div$1>$2</div>");
+      const content = page.content
+        .replace(/<img([^>]+)>/gi, "<img$1 />")
+        .replace(/<br>/g, "<br />")
+        .replace(/&nbsp;/g, "\u00A0");
 
-      const text =
-        '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' +
-        "<!DOCTYPE html>" +
-        '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="en" lang="en">' +
-        "<head>" +
-        `  <title>${page.name}</title>` +
-        "<style>" +
-        "  body {" +
-        "    position: relative;" +
-        "    font-family: Arial, sans-serif;" +
-        "  }" +
-        "  .watermark {" +
-        "    position: absolute;" +
-        "    top: -5px;" +
-        "    left: 0;" +
-        "    right: 0;" +
-        "    bottom: 0;" +
-        "    z-index: -1;" +
-        "    opacity: 0.3;" +
-        `    background-image: url('logo.png');` +
-        "    background-repeat: no-repeat;" +
-        // "    background-position: center;" +
-        "    background-size: 200px;" +
-        // "    transform: rotate(-30deg);" +
-        "  }" +
-        "</style>" +
-        "</head>" +
-        `<body>` +
-        `<div class="watermark"></div>` +
-        `<section><h1>${page.name}</h1><p>${sanitizedContent}</p></section>` +
-        "</body>" +
-        "</html>";
+      const xhtml = `<?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE html>
+    <html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+      <title>${page.name}</title>
+      <style>
+        body {
+          position: relative;
+          font-family: Arial, sans-serif;
+        }
+        .watermark {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: -1;
+          opacity: 0.1;
+          background-image: url('logo.png');
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: 200px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="watermark"></div>
+      <section><h1>${page.name}</h1><p>${content}</p></section>
+    </body>
+    </html>`;
 
-      new_zip.file(`OEBPS/chapter${index}.xhtml`, text);
+      const fileName = `chapter${index}.xhtml`;
+      watermarkZip.file(`OEBPS/${fileName}`, xhtml);
+
+      manifestItems += `<item id="chapter${index}" href="${fileName}" media-type="application/xhtml+xml"/>`;
+      spineItems += `<itemref idref="chapter${index}"/>`;
+      navPoints += `<navPoint id="nav-${index}" playOrder="${index + 1}">
+        <navLabel><text>${page.name}</text></navLabel>
+        <content src="${fileName}"/>
+      </navPoint>`;
     });
 
-    // Generate the EPUB file
-    const new_ebookBuffer = await new_zip.generateAsync({ type: "nodebuffer" });
+    // Add logo & TOC
+    manifestItems += `<item id="logo" href="logo.png" media-type="image/png"/>`;
+    manifestItems += `<item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>`;
 
-    // Save the generated EPUB file to disk
-    const new_ebookFilePath = path.join(
-      __dirname,
-      `../uploads/${book._id}_watermark.epub`
-    );
-    fs.writeFileSync(new_ebookFilePath, new_ebookBuffer);
+    // content.opf
+    const opf = `<?xml version="1.0"?>
+    <package version="3.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id">
+      <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <dc:title>${book.title}</dc:title>
+        <dc:creator>${book.author}</dc:creator>
+      </metadata>
+      <manifest>
+        ${manifestItems}
+      </manifest>
+      <spine toc="toc">
+        ${spineItems}
+      </spine>
+    </package>`;
+    watermarkZip.file("OEBPS/content.opf", opf);
 
-    // Add the generated ebook path to the book document
+    // toc.ncx
+    const ncx = `<?xml version="1.0"?>
+    <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+      <head>
+        <meta name="dtb:uid" content="urn:uuid:${book._id}"/>
+      </head>
+      <docTitle><text>${book.title}</text></docTitle>
+      <navMap>${navPoints}</navMap>
+    </ncx>`;
+    watermarkZip.file("OEBPS/toc.ncx", ncx);
+
+    // Save watermark EPUB
+    const watermarkEpubPath = path.join(__dirname, `../uploads/${book._id}_watermark.epub`);
+    const watermarkBuffer = await watermarkZip.generateAsync({ type: "nodebuffer" });
+    fs.writeFileSync(watermarkEpubPath, watermarkBuffer);
+
     book.watermarkFile = `/uploads/${book._id}_watermark.epub`;
     await book.save();
 
