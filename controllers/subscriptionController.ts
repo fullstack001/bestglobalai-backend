@@ -108,7 +108,8 @@ export const addSubscription = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    user.role = plan === "Basic" ? "editor" : "admin";
+    // user.role = plan === "Basic" ? "editor" : "admin";
+    user.role = plan.contains("Mid-Level") ? "editor" : "admin";
     await user.save();
     const fullName = user?.fullName || "";
 
