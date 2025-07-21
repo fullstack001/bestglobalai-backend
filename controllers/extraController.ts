@@ -7,7 +7,7 @@ import { mailSender } from "../config/mailSender";
 import { extraServicePaymentSuccessAdmin, individualServicePaymentSuccessAdmin } from "../config/mailTemplate";
 import { extraServiceUserEmail, individualServiceUserEmail } from "../config/mailTemplate";
 
-import ExtraService from "../models/ExtraService";
+import ExtraService from "../models/extraService";
 import IndividualService from "../models/IndividualService";
 
 import User from "../models/User";
