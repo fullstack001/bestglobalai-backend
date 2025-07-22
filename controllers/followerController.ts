@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Request, Response } from "express";
 import { Types } from "mongoose";
 import csvParser from "csv-parser";
@@ -363,9 +364,7 @@ export const sendInvites = async (req: Request, res: Response) => {
     } catch (error) {
       console.error(`Failed to send email to ${follower.email}:`, error);
       return res.status(500).json({ message: "Failed to send invitation." });
-
     }
-
     
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
