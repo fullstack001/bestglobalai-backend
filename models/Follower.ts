@@ -13,7 +13,7 @@ interface IFollower extends Document {
   phone1: String;
   phone2: String;
   email: string;
-  status: "Pending" | "Active";
+  status: "" | "Pending" | "Active";
   referralCode: string;
   category: mongoose.Schema.Types.ObjectId;
 }
@@ -31,7 +31,7 @@ const followerSchema = new Schema<IFollower>({
   phone1: { type: String},
   phone2: { type: String},
   email: { type: String, required: true, unique: true },
-  status: { type: String, enum: ["Pending", "Active"], default: "Pending" },
+  status: { type: String, enum: ["", "Pending", "Active"], default: "" },
   referralCode: { type: String, required: true },
   category: {
     type: mongoose.Schema.Types.ObjectId,

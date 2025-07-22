@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Book from "../models/Book";
 import User from "../models/User";
 import Follower from "../models/Follower";
+import Invite from "../models/Invite";
 import JSZip from "jszip";
 import slugify from "slugify";
 import fs from "fs";
@@ -387,6 +388,15 @@ export const getBookDetails = async (req: Request, res: Response) => {
   try {
     const bookId = req.params.id;
     const book = await Book.findById(bookId);
+    const inviteToken = req.query.invite;   
+    if (inviteToken) {
+      const invite = await Invite.findOne({ uuid: inviteToken});
+      if (invite) {
+        invite.viewed = true;
+        invite.updatedAt = new Date();
+        await invite.save();
+      }
+    }
 
     if (!book) {
       return res.status(404).json({ message: "Book not found" });

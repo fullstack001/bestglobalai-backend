@@ -6,6 +6,7 @@ import path from "path";
 import Follower from "../models/Follower";
 import User from "../models/User";
 import Category from "../models/Category";
+import Invite from "../models/Invite";
 import Mailgun from "mailgun.js";
 import formData from "form-data";
 import multer from "multer";
@@ -109,7 +110,7 @@ export const uploadFollowers = async (req: Request, res: Response) => {
           phone1: row.phone1,
           phone2: row.phone2,
           email: row.email,
-          status: "Pending",
+          status: "",
           referralCode: user._id,
           category : defaultCategory._id, // Assign default category
         });
@@ -258,7 +259,7 @@ export const uploadHubspotFollowers = async (req: Request, res: Response) => {
           phone1: "",
           phone2: "", // HubSpot only gives 1 phone
           email,
-          status: "Pending",
+          status: "",
           referralCode: String(inviterId),
           category: defaultCategory._id, // Assign default category
         });
@@ -286,16 +287,31 @@ export const uploadHubspotFollowers = async (req: Request, res: Response) => {
   }
 };
 
+function getEbookIdFromLink(link: string): string | null {
+  try {
+    const url = new URL(link); // Parse the URL
+    const segments = url.pathname.split('/'); // Split the pathname into segments
+    return segments.pop() || null; // Get the last segment (ebookId)
+  } catch (error) {
+    console.error("Invalid URL:", error);
+    return null; // Return null if the URL is invalid
+  }
+}
+
 //send invitations to followers by using mailgun
 export const sendInvites = async (req: Request, res: Response) => {
   try {
     const followerId = req.params.id;
     const inviterId = req.user._id;
+    const ebookLink = req.body.ebookLink; // Get ebook link from request body
+
 
     const follower = await Follower.findById(followerId);
     if (!follower) {
       return res.status(403).json({ message: "Follower not found" });
     }
+    follower.status = "Pending"; // Set status to Pending
+    await follower.save();
 
     const inviter = await User.findById(inviterId);
     if (!inviter || (!["superAdmin", "admin", "editor"].includes(inviter.role)) || !inviter.isActive) {
@@ -310,12 +326,28 @@ export const sendInvites = async (req: Request, res: Response) => {
       key: process.env.MAILGUN_API_KEY || "your-mailgun-api-key",
     });
 
+    let ebookId = getEbookIdFromLink(ebookLink);
+
+    const invite = new Invite({
+      inviterId: new Types.ObjectId(inviterId),
+      followerId: new Types.ObjectId(followerId),
+      bookId: ebookId, 
+      uuid: crypto.randomUUID(), 
+      viewed: false,
+    });
+    await invite.save();
+
+    let inviteId = invite.uuid;
+
     const inviteLink = `${frontend_url}/signup?ref=${follower.referralCode}`;
     const htmlContent = sendInvitesTemplate(
       String(inviteLink),
       String(follower.firstName),
-      String(follower.lastName)
-    );
+      String(follower.lastName),
+      String(ebookLink),
+      String(inviteId) 
+    );     
+
     const emailData = {
       from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
       to: follower.email,
@@ -367,14 +399,37 @@ export const getFollowers = async (req: Request, res: Response) => {
     const emails = followers.map((f) => f.email);
     const existingUsers = await User.find({ email: { $in: emails } });
 
-    const followersWithStatus = followers.map((follower) => {
-      const isRegistered = existingUsers.some((u) => u.email === follower.email);
-      return {
-        ...follower.toObject(),
-        status: isRegistered ? "Active" : follower.status,
-        category: follower.category, // Use category directly as it is an ObjectId
-      };
-    });
+    const followersWithStatus = await Promise.all(
+      followers.map(async (follower) => {
+        const isRegistered = existingUsers.some((u) => u.email === follower.email);
+        const latestInvite = await Invite.findOne({ followerId: follower._id, inviterId: inviterId })
+          .sort({ createdAt: -1 }) // Sort by creation date in descending order
+          .select("viewed updatedAt"); // Only fetch the 'viewed' field
+
+          let formattedUpdatedAt: string | null = null;
+
+          if (latestInvite?.updatedAt && !isNaN(new Date(latestInvite.updatedAt).getTime())) {
+            const date = new Date(latestInvite.updatedAt);
+            formattedUpdatedAt = date.toLocaleString("en-GB", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }).replace(",", "");
+          }
+         
+          
+        return {
+          ...follower.toObject(),
+          status: isRegistered ? "Active" : follower.status,
+          category: follower.category, 
+          viewed: latestInvite ? latestInvite.viewed : "", // Add viewed status
+          updatedAt: latestInvite ? formattedUpdatedAt : "", // Add updatedAt field
+        };
+      })
+    );
 
     res.json({ followers: followersWithStatus });
   } catch (error) {
@@ -447,7 +502,7 @@ export const getFollower = async (req: Request, res: Response) => {
 
 export const sendBulkInvites = async (req: Request, res: Response) => {
   try {
-    const { followerIds } = req.body;
+    const { followerIds, ebookLink } = req.body;
     const inviterId = req.user._id;
 
     const inviter = await User.findById(inviterId);
@@ -464,14 +519,37 @@ export const sendBulkInvites = async (req: Request, res: Response) => {
     const followers = await Follower.find({ _id: { $in: followerIds } });
     const sentEmails: string[] = [];
 
-    for (const follower of followers) {
+    for (const followerData of followers) {
+      const follower = await Follower.findById(followerData._id); // Fetch as Mongoose document
+      if (!follower) {
+        return res.status(403).json({ message: "Follower not found" });
+      }
+      follower.status = "Pending"; // Set status to Pending
+      await follower.save();
       try {
       const inviteLink = `${frontend_url}/signup?ref=${follower.referralCode}`;
+      let ebookId = getEbookIdFromLink(ebookLink);
+      let followerId = (follower._id as Types.ObjectId).toString();
+
+      const invite = new Invite({
+        inviterId: new Types.ObjectId(inviterId),
+        followerId: new Types.ObjectId(followerId),
+        bookId: ebookId, 
+        uuid: crypto.randomUUID(), 
+        viewed: false,
+      });
+      await invite.save();  
+
+      let inviteId = invite.uuid; 
+
       const htmlContent = sendInvitesTemplate(
         String(inviteLink),
         String(follower.firstName),
-        String(follower.lastName)
-      );
+        String(follower.lastName),
+        String(ebookLink),
+        String(inviteId) 
+      );     
+    
 
       const emailData = {
         from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,

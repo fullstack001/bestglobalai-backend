@@ -289,11 +289,16 @@ export function individualServiceUserEmail(userName: string, service: any) {
   }
 
 export function sendInvites(
-  inviteLink: string,
-  first_name: string,
-  last_name: string
+    inviteLink: string,
+    first_name: string,
+    last_name: string,
+    ebookLink: string,
+    inviteId: string | null = null
 ) {
-  return `<!DOCTYPE html>
+    const ebookSection = ebookLink
+    ? `<p>As a special welcome, we're offering you a free eBook: <a href="${ebookLink}?invite=${inviteId}">View eBook here</a></p>`
+    : "";
+    return `<!DOCTYPE html>
             <html>
             <head>
                 ${style}
@@ -306,6 +311,7 @@ export function sendInvites(
                     <p>Dear ${first_name} ${last_name},</p>
                     <p>You're invited to join BestGlobalAl! Click the link below to sign up:</p>
                     <a href="${inviteLink}" class="button">Sign Up</a>
+                    ${ebookSection}
                     <p>Best regards,<br>
                     The BestGlobalAl Team</p>
                 </div>
