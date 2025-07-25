@@ -399,7 +399,6 @@ export const getBookDetails = async (req: Request, res: Response) => {
         await invite.save();
       }
     }
-
     const subscriberInviteToken = req.query.subscriberInvite;
     if (subscriberInviteToken) {
       const subscriberInvite = await SubscriberInvite.findOne({ uuid: subscriberInviteToken });

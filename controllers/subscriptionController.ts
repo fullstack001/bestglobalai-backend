@@ -410,7 +410,7 @@ export const sendBulkInvites = async (req: Request, res: Response) => {
       const emailData = {
         from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
         to: subscriber.email,
-        subject: "You're Invited to Join!",
+        subject: "Marketing Promotion Invitation",
         html: htmlContent,
       };
       
@@ -468,7 +468,7 @@ export const getSubscriptionTracks = async (req: Request, res: Response) => {
               return {
                 bookId: detail._id,
                 bookTitle: book ? book.title : 'Unknown Book',
-                viewCount: detail.viewCount != 0 ? detail.viewCount / 2 : 0,
+                viewCount: detail.viewCount != 0 ? detail.viewCount : 0,
                 lastUpdatedAt: detail.lastUpdatedAt,
                 invites: detail,
               };
@@ -477,10 +477,7 @@ export const getSubscriptionTracks = async (req: Request, res: Response) => {
               ;
             }
           })
-        );
-
-        
-
+        );      
 
         return {
           subscriber: subscriber,
