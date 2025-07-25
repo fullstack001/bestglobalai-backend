@@ -318,3 +318,43 @@ export function sendInvites(
             </body>
             </html>`;
 }
+
+
+
+export function sendSubscriberInvites(   
+    fullName: string,   
+    ebookLink: string,
+    inviteId: string | null = null
+) {
+    const ebookSection = ebookLink
+    ? `<p>As a special welcome, we're offering you a free eBook: <a href="${ebookLink}?subscriberInvite=${inviteId}">View eBook here</a></p>`
+    : "";
+    return `<!DOCTYPE html>
+            <html>
+            <head>
+                ${style}
+            </head>
+            <body>  
+                <div class="email-container">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://bestglobalai.com/watermark.png" alt="BestGlobalAl watermark" style="max-width: 200px; height: auto;"/>
+                    </div>
+                    <p>Dear ${fullName} </p>
+                    <p>You're invited to join BestGlobalAl! Click the link below to sign up:</p>                   
+                    ${ebookSection}
+                    <p>Best regards,<br>
+                    The BestGlobalAl Team</p>
+                </div>
+            </body>
+            </html>`;
+}
+// Dear ______,
+ 
+// As a valued follower of my marketing promotions, I invite you to view my newest interactive ePub3 feature created just for you.
+ 
+// (Create button: Click Here)
+ 
+// You'll be automatically viewing my latest designed promotion with valuable features offered for my private list followers.
+ 
+// Best regards,
+// (Brand Member Logo and Signature)

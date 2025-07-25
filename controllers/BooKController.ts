@@ -3,6 +3,7 @@ import Book from "../models/Book";
 import User from "../models/User";
 import Follower from "../models/Follower";
 import Invite from "../models/Invite";
+import SubscriberInvite from "../models/SubscriberInvite";
 import JSZip from "jszip";
 import slugify from "slugify";
 import fs from "fs";
@@ -388,13 +389,25 @@ export const getBookDetails = async (req: Request, res: Response) => {
   try {
     const bookId = req.params.id;
     const book = await Book.findById(bookId);
-    const inviteToken = req.query.invite;   
+    const inviteToken = req.query.invite;
+
     if (inviteToken) {
       const invite = await Invite.findOne({ uuid: inviteToken});
       if (invite) {
         invite.viewed = true;
         invite.updatedAt = new Date();
         await invite.save();
+      }
+    }
+
+    const subscriberInviteToken = req.query.subscriberInvite;
+    if (subscriberInviteToken) {
+      const subscriberInvite = await SubscriberInvite.findOne({ uuid: subscriberInviteToken });
+      if (subscriberInvite) {
+        subscriberInvite.viewed = true;
+        subscriberInvite.viewCount += 1;
+        subscriberInvite.updatedAt = new Date();
+        await subscriberInvite.save();
       }
     }
 

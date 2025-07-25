@@ -9,10 +9,14 @@ import moment from "moment";
 import jwt from "jsonwebtoken";
 import fs from "fs";
 import Subscription from "../models/Subscription";
+import { Types } from "mongoose";
 import User from "../models/User";
+import SubscriberInvite from "../models/SubscriberInvite";
+import Book from "../models/Book";
 import { subscriptionConfirmationContent } from "../config/mailTemplate";
 import { generateInvoicePDF } from "../config/invoiceGenerator";
 import { subscriptions } from "../config/subscriptionDetail";
+import { sendSubscriberInvites } from "../config/mailTemplate";
 
 dotenv.config();
 
@@ -23,6 +27,13 @@ const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
 
 const stripe_secret_key = process.env.STRIPE_SECRET_KEY;
 
+interface Subscriber {
+  _id: Types.ObjectId;
+  user: {
+    fullName: string;
+    email: string;
+  };
+}
 if (!clientId || !clientSecret) {
   throw new Error("PayPal client ID and secret must be defined");
 }
@@ -314,5 +325,173 @@ export const processPaypalPayment = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("PayPal Payment Error:", error);
     res.status(500).json({ error: "PayPal payment processing failed" });
+  }
+};
+
+export const getSubscribers = async (req: Request, res: Response) => {
+  try {
+    const subscribers = await Subscription.find().populate({
+      path: "user",
+      select: "email fullName role",
+    });
+
+    if (!subscribers || subscribers.length === 0) {
+      return res.status(404).json({ message: "No subscribers found" });
+    }
+
+    res.status(200).json(subscribers);
+  } catch (error) {
+    console.error("Error fetching subscribers:", error);
+    res.status(500).json({ error: "Failed to fetch subscribers" });
+  }
+}
+
+function getEbookIdFromLink(link: string): string | null {
+  try {
+    const url = new URL(link); // Parse the URL
+    const segments = url.pathname.split('/'); // Split the pathname into segments
+    return segments.pop() || null; // Get the last segment (ebookId)
+  } catch (error) {
+    console.error("Invalid URL:", error);
+    return null; // Return null if the URL is invalid
+  }
+}
+
+export const sendBulkInvites = async (req: Request, res: Response) => {
+  try {
+   
+    const { subscriberIds, ebookLink } = req.body;
+    const inviterId = req.user._id;
+
+    const inviter = await User.findById(inviterId);
+    if (!inviter || (!["superAdmin", "admin", "editor"].includes(inviter.role)) || !inviter.isActive) {
+      return res.status(403).json({ message: "Only paid users can send invites." });
+    }
+
+    const mailgun = new Mailgun(formData);
+    const mg = mailgun.client({
+      username: "api",
+      key: process.env.MAILGUN_API_KEY!,
+    });
+   
+    const subscribers = await Subscription.find({ _id: { $in: subscriberIds } }).populate({
+      path: "user",
+      select: "email fullName role",
+    });
+    const sentEmails: string[] = [];
+
+    for (const subscriber of subscribers) {
+      if (!subscriber || !subscriber.user || typeof subscriber.user === "string") {
+        return res.status(403).json({ message: "Follower not found" });
+      }
+     
+      try {    
+      let ebookId = getEbookIdFromLink(ebookLink);
+      let subscriberId = (subscriber._id as Types.ObjectId).toString();
+
+      const invite = new SubscriberInvite({      
+        subscriberId: new Types.ObjectId(subscriberId),
+        bookId: ebookId, 
+        uuid: crypto.randomUUID(), 
+        viewed: false,
+      });
+      await invite.save();  
+
+      let inviteId = invite.uuid; 
+
+      const htmlContent = sendSubscriberInvites(       
+        String((subscriber.user as any).fullName),    
+        String(ebookLink),
+        String(inviteId) 
+      );     
+    
+
+      const emailData = {
+        from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
+        to: subscriber.email,
+        subject: "You're Invited to Join!",
+        html: htmlContent,
+      };
+      
+        await mg.messages.create(process.env.MAILGUN_DOMAIN!, emailData);
+        sentEmails.push(subscriber.email);
+      } catch (error) {
+        console.error(`Failed to send email to ${subscriber.email}:`, error);
+      }
+    }
+
+    res.json({ message: `Invitations sent to ${sentEmails.length} subscriber.` });
+  } catch (err: any) {
+    console.error("sendBulkInvites failed:", err.message);
+    return res.status(500).json({ message: "Server error. Please try again later." });
+  }
+};
+
+export const getSubscriptionTracks = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    // Find the subscription by userId
+    const subscribers = await Subscription.find().populate({
+      path: "user",
+      select: "email fullName role",
+    });
+
+    if (!subscribers || subscribers.length === 0) {
+      return res.status(404).json({ message: "No subscribers found" });
+    }
+    const emails = subscribers.map((f) => f.email);
+    const existingUsers = await User.find({ email: { $in: emails } });
+    
+    let subscriptionTracks = await Promise.all(
+      subscribers.map(async (subscriber) => {
+        const isRegistered = existingUsers.some((u) => u.email === subscriber.email);
+        
+        // Get subscriber details with viewed counts grouped by bookId
+        const inviteDetails = await SubscriberInvite.aggregate([
+          { $match: { subscriberId: subscriber._id } },
+          {
+            $group: {
+              _id: '$bookId',      
+              viewCount: { $sum: '$viewCount' }, // Count viewed invites   
+              lastUpdatedAt: { $max: '$updatedAt' }  // Get the latest updatedAt
+            }
+          }
+        ]);
+
+        // Get book titles for each bookId
+        const bookDetails = await Promise.all(
+          inviteDetails.map(async (detail) => {            
+            const book = await Book.findById(detail._id);    
+            if(detail._id) {     
+              return {
+                bookId: detail._id,
+                bookTitle: book ? book.title : 'Unknown Book',
+                viewCount: detail.viewCount != 0 ? detail.viewCount / 2 : 0,
+                lastUpdatedAt: detail.lastUpdatedAt,
+                invites: detail,
+              };
+            } else {
+              return "Not Sent";
+              ;
+            }
+          })
+        );
+
+        
+
+
+        return {
+          subscriber: subscriber,
+          isRegistered,
+          bookStats: bookDetails
+        };
+      })
+    );
+
+    res.status(200).json(subscriptionTracks);
+  } catch (error) {
+    console.error("Error fetching subscription tracks:", error);
+    res.status(500).json({ error: "Failed to fetch subscription tracks" });
   }
 };
