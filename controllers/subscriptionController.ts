@@ -405,6 +405,7 @@ export const sendBulkInvites = async (req: Request, res: Response) => {
         String(inviteId) 
       );     
     
+      console.log("subscriber details", htmlContent);
 
       const emailData = {
         from: `Best Global AI Team <admin@${process.env.MAILGUN_DOMAIN}>`,
